@@ -1,8 +1,9 @@
 import "server-only";
 
-import { Pool } from "pg";
 import type { ComponentType } from "react";
 import { AlertTriangle, CheckCircle2, Database, Table2 } from "lucide-react";
+
+import { getPostgresPool } from "@/lib/postgres";
 
 export type HistoryMetricTone = "emerald" | "blue" | "rose";
 export type HistoryStatusTone = "success" | "error" | "processing";
@@ -54,23 +55,6 @@ const metricIcons = {
 
 const rowIcon = Table2;
 
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("DATABASE_URL is not set");
-}
-
-const pool =
-  (globalThis as typeof globalThis & { __deptcontrolPool?: Pool }).__deptcontrolPool ??
-  new Pool({
-    connectionString,
-    ssl: false,
-  });
-
-if (!(globalThis as typeof globalThis & { __deptcontrolPool?: Pool }).__deptcontrolPool) {
-  (globalThis as typeof globalThis & { __deptcontrolPool?: Pool }).__deptcontrolPool = pool;
-}
-
 function formatDateParts(value: string) {
   const date = new Date(value);
   return {
@@ -85,6 +69,8 @@ function toPercentSeries(values: number[]) {
 }
 
 export async function getHistoryDashboardData(): Promise<HistoryDashboardData> {
+  const pool = getPostgresPool();
+
   const [overviewResult, rowsResult, timelineResult] = await Promise.all([
     pool.query<{ total_rows: string; success_rows: string; error_rows: string; processing_rows: string; total_row_count: string }>(
       `select

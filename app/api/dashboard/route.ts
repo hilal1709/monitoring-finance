@@ -3,6 +3,7 @@ import { buildMonitoringDashboardFromFiles } from "@/lib/monitoring-dashboard";
 import type { WorkbookRole } from "@/lib/monitoring-dashboard-types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {

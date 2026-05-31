@@ -34,3 +34,22 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## DeptControl Deployment Notes
+
+This app needs a Postgres database because uploaded invoice/payment workbooks are stored in `public.dashboard_uploads`.
+
+Required environment variable:
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+```
+
+Vercel setup:
+
+1. Create or connect a Postgres database, for example Supabase, Neon, or a Vercel Marketplace Postgres provider.
+2. Add `DATABASE_URL` in Vercel Project Settings > Environment Variables for Production and Preview.
+3. Deploy with Vercel's Next.js preset. Build command can stay `npm run build`; install command can stay `npm install`.
+4. After deploy, open `/invoice` and `/payment`, then upload each workbook once. The app creates `dashboard_uploads` automatically if it does not exist.
+
+For manual database setup, run `supabase/schema.sql` in your Postgres SQL editor.

@@ -4,7 +4,7 @@ import { getLatestDashboardReports } from "@/lib/dashboard-store";
 export const dynamic = "force-dynamic";
 
 export default async function PaymentPage() {
-  const initialReports = await getLatestDashboardReports("payment");
+  const initialReports = await getLatestDashboardReports("payment").catch(() => ({}));
 
   return <DashboardPage view="payment" initialReports={initialReports} />;
 }
