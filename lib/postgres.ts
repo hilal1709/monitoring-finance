@@ -18,6 +18,24 @@ function shouldUseSsl(connectionString: string) {
   }
 }
 
+function normalizeConnectionString(connectionString: string) {
+  try {
+    const url = new URL(connectionString);
+
+    // node-postgres can let sslmode from the URL override the explicit ssl
+    // object below. Keep SSL controlled in one place so Supabase pooler works
+    // consistently on Vercel.
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("sslcert");
+    url.searchParams.delete("sslkey");
+    url.searchParams.delete("sslrootcert");
+
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 export function getPostgresPool() {
   const connectionString = process.env.DATABASE_URL;
 
@@ -26,10 +44,11 @@ export function getPostgresPool() {
   }
 
   const globalWithPool = globalThis as typeof globalThis & { __deptcontrolPgPool?: Pool };
+  const useSsl = shouldUseSsl(connectionString);
 
   globalWithPool.__deptcontrolPgPool ??= new Pool({
-    connectionString,
-    ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : false,
+    connectionString: normalizeConnectionString(connectionString),
+    ssl: useSsl ? { rejectUnauthorized: false } : false,
   });
 
   return globalWithPool.__deptcontrolPgPool;
