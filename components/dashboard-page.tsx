@@ -10,11 +10,13 @@ import {
   Filter,
   LayoutDashboard,
   Loader2,
+  Menu,
   PieChart,
   ReceiptText,
   RefreshCcw,
   UploadCloud,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -509,7 +511,7 @@ function rankedItemTooltip(item: RankedItem) {
   return `${item.label}: ${formatCurrency(item.value)} | ${formatPercent(item.share)} | ${formatNumber(item.count)} rows`;
 }
 
-function DonutChart({ title, items, centerLabel }: { title: string; items: RankedItem[]; centerLabel?: string }) {
+function DonutChart({ title, items, centerLabel, summary }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string }) {
   const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
   const gradient = items
     .map((item, index) => {
@@ -524,18 +526,19 @@ function DonutChart({ title, items, centerLabel }: { title: string; items: Ranke
   return (
     <div className="h-full rounded-lg border border-white/10 bg-[#0c1724]">
       <ChartTitle title={title} />
-      <div className="flex min-h-[220px] items-center justify-center gap-4 p-3">
+      {summary ? <div className="border-b border-white/10 px-3 py-2 text-center text-xs font-bold text-[#ffd166]">{summary}</div> : null}
+      <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 p-3 2xl:flex-row">
         <div className="relative grid h-44 w-44 shrink-0 place-items-center rounded-full border border-white/10" style={{ background }}>
           <div className="grid h-20 w-20 place-items-center rounded-full border border-white/10 bg-[#0c1724] text-center text-xs font-bold text-slate-100">
             {centerLabel ?? "Total"}
           </div>
         </div>
-        <div className="min-w-0 space-y-1 text-[10px] text-slate-300">
+        <div className="w-full min-w-0 max-w-[240px] space-y-1 text-[10px] text-slate-300 2xl:w-44">
           {items.slice(0, 8).map((item, index) => (
-            <div key={item.label} tabIndex={0} title={rankedItemTooltip(item)} className="group relative grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-1 outline-none">
+            <div key={item.label} tabIndex={0} title={rankedItemTooltip(item)} className="group relative grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-2 outline-none">
               <HoverValue text={rankedItemTooltip(item)} />
               <span className="h-2 w-2 shrink-0" style={{ backgroundColor: palette[index % palette.length] }} />
-              <span className="truncate">{item.label}</span>
+              <span className="min-w-0 break-words leading-tight">{item.label}</span>
               <span className="font-bold">{formatPercent(item.share)}</span>
             </div>
           ))}
@@ -773,18 +776,18 @@ function CombinedOverview({
       </div>
 
       <div className="grid gap-3 p-3 pt-0 xl:grid-cols-[0.95fr_0.95fr_1.25fr]">
-        <div className="grid gap-3">
-          <div className="rounded-lg border border-white/10 bg-[#0c1724] p-2 text-center text-xs font-bold text-slate-200">
-            Invoice Bucket 4 (&gt;365): {formatPercent(invoiceBucket4)}
-          </div>
-          <DonutChart title="Invoice Aging by Bucket" items={invoice.section.statusMix} centerLabel="Invoice Aging" />
-        </div>
-        <div className="grid gap-3">
-          <div className="rounded-lg border border-white/10 bg-[#0c1724] p-2 text-center text-xs font-bold text-slate-200">
-            Payment Current: {formatPercent(currentPayment)}
-          </div>
-          <DonutChart title="Payment Risk Composition" items={payment.section.statusMix} centerLabel="Payment Risk" />
-        </div>
+        <DonutChart
+          title="Invoice Aging by Bucket"
+          items={invoice.section.statusMix}
+          centerLabel="Invoice Aging"
+          summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
+        />
+        <DonutChart
+          title="Payment Risk Composition"
+          items={payment.section.statusMix}
+          centerLabel="Payment Risk"
+          summary={`Current: ${formatPercent(currentPayment)}`}
+        />
         <CombinedMonthlyBars invoice={invoice.section} payment={payment.section} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
       </div>
 
@@ -1057,6 +1060,7 @@ export default function DashboardPage({
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const invoiceInputRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
   const hasAnyReport = Boolean(reports.invoice || reports.payment);
@@ -1103,6 +1107,44 @@ export default function DashboardPage({
       };
     });
   }
+
+  function openWorkbookPicker(role: WorkbookRole) {
+    if (role === "invoice") {
+      invoiceInputRef.current?.click();
+      return;
+    }
+
+    paymentInputRef.current?.click();
+  }
+
+  function openWorkbookPickerFromMobile(role: WorkbookRole) {
+    setIsMobileNavOpen(false);
+    openWorkbookPicker(role);
+  }
+
+  function resetDashboard() {
+    dashboardReportsCache = {};
+    setReports({});
+    setErrors({});
+    setFilters({ invoice: {}, payment: {} });
+  }
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [view]);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isMobileNavOpen]);
 
   useEffect(() => {
     if (initialReports) {
@@ -1242,6 +1284,82 @@ export default function DashboardPage({
         onChange={(event) => void uploadRole("payment", event.target.files)}
       />
 
+      {isMobileNavOpen ? (
+        <div aria-label="Mobile navigation" aria-modal="true" className="fixed inset-0 z-50 md:hidden" role="dialog">
+          <button aria-label="Close navigation" className="absolute inset-0 bg-black/60" type="button" onClick={() => setIsMobileNavOpen(false)} />
+          <aside className="relative flex h-full w-80 max-w-[88vw] flex-col border-r border-white/10 bg-[#0c1724] p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#ffd166] text-[#211600]">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="truncate text-lg font-semibold tracking-tight text-white">DeptControl</h1>
+                  <p className="truncate text-xs uppercase tracking-[0.18em] text-slate-500">Commercial Finance</p>
+                </div>
+              </div>
+              <Button
+                aria-label="Close navigation"
+                className="shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                size="icon"
+                type="button"
+                variant="secondary"
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <nav className="mt-8 flex flex-col gap-2 text-sm">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = item.view === view;
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-4 py-3 transition-colors",
+                      active ? "bg-[#ffd166] text-[#211600]" : "text-slate-300 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto space-y-2 border-t border-white/10 pt-5">
+              {hasAnyReport ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    resetDashboard();
+                    setIsMobileNavOpen(false);
+                  }}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Reset
+                </Button>
+              ) : null}
+              <Button type="button" onClick={() => openWorkbookPickerFromMobile("invoice")} disabled={loadingRole !== null} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+                {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
+                Upload Invoice
+              </Button>
+              <Button type="button" onClick={() => openWorkbookPickerFromMobile("payment")} disabled={loadingRole !== null} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
+                {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                Upload Payment
+              </Button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-white/10 bg-[#0c1724] md:block">
         <div className="flex h-full flex-col p-6">
           <div className="mb-10 flex items-center gap-3">
@@ -1278,12 +1396,12 @@ export default function DashboardPage({
 
           <div className="space-y-2 border-t border-white/10 pt-5">
             {activeRole === "invoice" ? (
-              <Button type="button" onClick={() => invoiceInputRef.current?.click()} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+              <Button type="button" onClick={() => openWorkbookPicker("invoice")} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
                 <ReceiptText className="h-4 w-4" />
                 Upload Invoice
               </Button>
             ) : activeRole === null ? (
-              <Button type="button" onClick={() => invoiceInputRef.current?.click()} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+              <Button type="button" onClick={() => openWorkbookPicker("invoice")} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
                 <ReceiptText className="h-4 w-4" />
                 Upload Invoice
               </Button>
@@ -1294,12 +1412,12 @@ export default function DashboardPage({
               </Link>
             )}
             {activeRole === "payment" ? (
-              <Button type="button" onClick={() => paymentInputRef.current?.click()} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
+              <Button type="button" onClick={() => openWorkbookPicker("payment")} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
                 <Wallet className="h-4 w-4" />
                 Upload Payment
               </Button>
             ) : activeRole === null ? (
-              <Button type="button" onClick={() => paymentInputRef.current?.click()} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
+              <Button type="button" onClick={() => openWorkbookPicker("payment")} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
                 <Wallet className="h-4 w-4" />
                 Upload Payment
               </Button>
@@ -1313,22 +1431,31 @@ export default function DashboardPage({
         </div>
       </aside>
 
-      <header className="fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between border-b border-white/10 bg-[#07111f]/92 px-4 backdrop-blur md:w-[calc(100%-16rem)] md:px-8">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">AR Report Monitoring</p>
-          <h2 className="truncate text-xl font-semibold text-white md:text-2xl">{pageTitle}</h2>
+      <header className="fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between gap-3 border-b border-white/10 bg-[#07111f]/92 px-4 backdrop-blur md:w-[calc(100%-16rem)] md:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            aria-expanded={isMobileNavOpen}
+            aria-label="Open navigation"
+            className="shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 md:hidden"
+            size="icon"
+            type="button"
+            variant="secondary"
+            onClick={() => setIsMobileNavOpen(true)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium uppercase tracking-[0.16em] text-slate-500">AR Report Monitoring</p>
+            <h2 className="truncate text-xl font-semibold text-white md:text-2xl">{pageTitle}</h2>
+          </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
           {hasAnyReport ? (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                dashboardReportsCache = {};
-                setReports({});
-                setFilters({ invoice: {}, payment: {} });
-              }}
+              onClick={resetDashboard}
               className="rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -1336,22 +1463,22 @@ export default function DashboardPage({
             </Button>
           ) : null}
           {activeRole === "invoice" ? (
-            <Button type="button" onClick={() => invoiceInputRef.current?.click()} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+            <Button type="button" onClick={() => openWorkbookPicker("invoice")} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
               {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
               Upload Invoice
             </Button>
           ) : activeRole === "payment" ? (
-            <Button type="button" onClick={() => paymentInputRef.current?.click()} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
+            <Button type="button" onClick={() => openWorkbookPicker("payment")} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
               {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
               Upload Payment
             </Button>
           ) : (
             <>
-              <Button type="button" onClick={() => invoiceInputRef.current?.click()} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+              <Button type="button" onClick={() => openWorkbookPicker("invoice")} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
                 {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
                 Upload Invoice
               </Button>
-              <Button type="button" onClick={() => paymentInputRef.current?.click()} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
+              <Button type="button" onClick={() => openWorkbookPicker("payment")} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
                 {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
                 Upload Payment
               </Button>
@@ -1378,7 +1505,7 @@ export default function DashboardPage({
                 isLoading={loadingRole === card.role}
                 loaded={reports[card.role]}
                 error={errors[card.role]}
-                onPick={() => (card.role === "invoice" ? invoiceInputRef.current?.click() : paymentInputRef.current?.click())}
+                onPick={() => openWorkbookPicker(card.role)}
                 onDrop={(files) => void uploadRole(card.role, files)}
               />
             ))}
