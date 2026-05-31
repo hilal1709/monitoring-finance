@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinVision - Data History",
-  description: "Data history dashboard with shadcn/ui, GSAP, and anime.js.",
+  title: "DeptControl - AR Monitoring",
+  description: "Invoice and payment monitoring dashboard.",
 };
 
 export default function RootLayout({
