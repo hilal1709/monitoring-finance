@@ -48,6 +48,8 @@ type LoadedReport = {
   section: DashboardSection;
 };
 
+let dashboardReportsCache: Partial<Record<WorkbookRole, LoadedReport>> = {};
+
 const navItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/", view: "overview" },
   { label: "Invoice", icon: ReceiptText, href: "/invoice", view: "invoice" },
@@ -115,6 +117,7 @@ function formatTimestamp(value: string) {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Jakarta",
   }).format(new Date(value));
 }
 
@@ -394,6 +397,15 @@ function loadedReportsFromPersisted(reports?: PersistedDashboardReports) {
     ...(reports?.invoice ? { invoice: fromPersistedReport(reports.invoice) } : {}),
     ...(reports?.payment ? { payment: fromPersistedReport(reports.payment) } : {}),
   } satisfies Partial<Record<WorkbookRole, LoadedReport>>;
+}
+
+function cacheReports(reports: Partial<Record<WorkbookRole, LoadedReport>>) {
+  dashboardReportsCache = {
+    ...dashboardReportsCache,
+    ...reports,
+  };
+
+  return dashboardReportsCache;
 }
 
 function ReportKpi({
@@ -1035,7 +1047,11 @@ export default function DashboardPage({
   view?: DashboardView;
   initialReports?: PersistedDashboardReports;
 }) {
-  const [reports, setReports] = useState<Partial<Record<WorkbookRole, LoadedReport>>>(() => loadedReportsFromPersisted(initialReports));
+  const [reports, setReports] = useState<Partial<Record<WorkbookRole, LoadedReport>>>(() => {
+    const loadedReports = loadedReportsFromPersisted(initialReports);
+
+    return cacheReports(loadedReports);
+  });
   const [errors, setErrors] = useState<Partial<Record<WorkbookRole, string>>>({});
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
@@ -1095,6 +1111,14 @@ export default function DashboardPage({
       return;
     }
 
+    const hasCachedRouteData = activeRole ? Boolean(dashboardReportsCache[activeRole]) : Boolean(dashboardReportsCache.invoice && dashboardReportsCache.payment);
+
+    if (hasCachedRouteData) {
+      setReports({ ...dashboardReportsCache });
+      setIsLoadingStoredReports(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function loadStoredReports() {
@@ -1114,10 +1138,12 @@ export default function DashboardPage({
 
         const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
 
-        setReports({
-          ...(storedReports.invoice ? { invoice: fromPersistedReport(storedReports.invoice) } : {}),
-          ...(storedReports.payment ? { payment: fromPersistedReport(storedReports.payment) } : {}),
-        });
+        const loadedReports = loadedReportsFromPersisted(storedReports);
+
+        setReports((current) => ({
+          ...current,
+          ...cacheReports(loadedReports),
+        }));
       } catch (error) {
         if (!cancelled && activeRole) {
           setErrors((current) => ({
@@ -1167,15 +1193,18 @@ export default function DashboardPage({
         throw new Error(payload.error ?? "Workbook tidak bisa diproses.");
       }
 
+      const loadedReport = persistedReport
+        ? fromPersistedReport(persistedReport)
+        : {
+            generatedAt: payload.generatedAt,
+            file: fileSummary as UploadedWorkbookSummary,
+            section: section as DashboardSection,
+          };
+
+      cacheReports({ [role]: loadedReport });
       setReports((current) => ({
         ...current,
-        [role]: persistedReport
-          ? fromPersistedReport(persistedReport)
-          : {
-              generatedAt: payload.generatedAt,
-              file: fileSummary as UploadedWorkbookSummary,
-              section: section as DashboardSection,
-            },
+        [role]: loadedReport,
       }));
       clearFilters(role);
     } catch (error) {
@@ -1296,6 +1325,7 @@ export default function DashboardPage({
               type="button"
               variant="secondary"
               onClick={() => {
+                dashboardReportsCache = {};
                 setReports({});
                 setFilters({ invoice: {}, payment: {} });
               }}
