@@ -414,28 +414,31 @@ function ReportKpi({
   icon: Icon,
   title,
   value,
+  detail,
   accent = "amber",
 }: {
   icon: LucideIcon;
   title: string;
   value: string;
+  detail?: string;
   accent?: "amber" | "cyan" | "emerald";
 }) {
   const accentClass = accent === "emerald" ? "text-[#70f0bf]" : accent === "cyan" ? "text-[#7dd3fc]" : "text-[#ffd166]";
   const accentPanel = accent === "emerald" ? "border-[#70f0bf]/25 bg-[#70f0bf]/10" : accent === "cyan" ? "border-[#7dd3fc]/25 bg-[#7dd3fc]/10" : "border-[#ffd166]/25 bg-[#ffd166]/10";
 
   return (
-    <div className="grid min-h-[84px] min-w-0 grid-cols-[56px_minmax(0,1fr)] rounded-lg border border-white/10 bg-[#0c1724] shadow-[0_18px_35px_rgba(0,0,0,0.18)]">
+    <div className="grid min-h-24 min-w-0 grid-cols-[56px_minmax(0,1fr)] rounded-lg border border-white/10 bg-[#0c1724] shadow-[0_18px_35px_rgba(0,0,0,0.18)]">
       <div className={cn("m-3 grid place-items-center rounded-lg border", accentPanel, accentClass)}>
         <Icon className="h-6 w-6" />
       </div>
-      <div className="min-w-0 p-3 pl-0">
-        <div className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500" title={title}>
+      <div className="flex min-w-0 flex-col justify-between p-3 pl-0">
+        <div className="max-w-full break-words text-[10px] font-semibold uppercase leading-snug tracking-[0.14em] text-slate-500" title={title}>
           {title}
         </div>
-        <div className={cn("mt-2 min-w-0 text-right text-xl font-semibold leading-tight", accentClass)} title={value}>
+        <div className={cn("mt-2 min-w-0 break-words text-right text-xl font-semibold leading-tight", accentClass)} title={value}>
           {value}
         </div>
+        {detail ? <div className="mt-1 text-right text-[10px] font-semibold leading-tight text-slate-400">{detail}</div> : null}
       </div>
     </div>
   );
@@ -848,7 +851,7 @@ function ReportFrame({
         { title: "Total Invoice", value: formatNumber(activeSection.rowCount), icon: ReceiptText },
         { title: "Average Piutang / Bulan", value: formatCurrency(monthlyAverage(activeSection), true), icon: Calculator },
         { title: "% Bucket 4 (>365)", value: formatPercent(primaryShare), icon: PieChart },
-        { title: "% Piutang (Group / Ext)", value: `${formatPercent(groupShare)} / ${formatPercent(externalShare)}`, icon: BarChart3 },
+        { title: "Piutang by Customer Type", value: `Group ${formatPercent(groupShare)}`, detail: `External ${formatPercent(externalShare)}`, icon: BarChart3 },
       ]
     : [
         { title: "Total Payment", value: formatCurrency(activeSection.totalAmount, true), icon: Wallet },
