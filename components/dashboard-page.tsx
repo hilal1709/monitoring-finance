@@ -1066,7 +1066,7 @@ function ReportFrame({
       <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[0.7fr_1.55fr]" : "xl:grid-cols-[1fr_1fr]")}>
         {isInvoice ? <HorizontalBars title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} maxItems={8} showValue={false} /> : null}
         <LineTrend title={isInvoice ? "Outstanding Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
-        {!isInvoice ? <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} /> : null}
+        {!isInvoice ? <DonutChart title="Payment by Customer Type" items={activeSection.customerTypes} centerLabel="Type" /> : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#07111f] px-3 py-2 text-xs font-semibold text-slate-400">
