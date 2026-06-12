@@ -669,7 +669,7 @@ function OverviewMonthDropdown({
               onClick={() => onToggle(item)}
               className={cn(
                 "min-h-9 rounded-lg border px-2 py-1 text-left font-medium transition-colors",
-                selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
+                selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/5 text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
               )}
             >
               {item}
