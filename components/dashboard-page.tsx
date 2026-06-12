@@ -964,7 +964,7 @@ function ReportFrame({
         { title: "Average Payment", value: formatCurrency(activeSection.averageAmount, true), icon: Calculator },
         { title: "% Current (<30 Day)", value: formatPercent(primaryShare), icon: PieChart },
       ];
-  const years = filterOptions(section, "year", [...new Set(section.monthly.map((point) => point.label.split(" ")[1]).filter(Boolean))], 8);
+  const years = filterOptions(section, "year", [...new Set(section.monthly.map((point) => point.label.split(" ")[1]).filter(Boolean))], Infinity);
   const months = filterOptions(section, "month", monthLabels, 12);
   const customerTypes = filterOptions(section, "customerType", listLabels(section.customerTypes, 2), 4);
   const customerNames = filterOptions(section, "customerName", listLabels(section.topCustomers, isInvoice ? 7 : 8), isInvoice ? 7 : 8);

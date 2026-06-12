@@ -454,6 +454,34 @@ function parsePeriod(monthValue: CellValue | undefined, yearValue: CellValue | u
   };
 }
 
+function parseDateValueAsPeriod(value: CellValue | undefined): Period | null {
+  if (!value) return null;
+  
+  let date: Date | null = null;
+  if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+      date = new Date(value);
+    }
+  } else if (typeof value === "number" && value > 0 && value < 60000) {
+    const iso = excelSerialToIsoDate(value);
+    if (iso) {
+      date = new Date(iso);
+    }
+  }
+
+  if (date && !Number.isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return {
+      key: `${year}-${String(month).padStart(2, "0")}`,
+      label: `${MONTHS[month]} ${year}`,
+      sort: year * 100 + month,
+    };
+  }
+
+  return null;
+}
+
 function parseInvoiceRecords(sheet: ParsedSheet) {
   const header = findHeader(sheet.rows, ["Cust. Name", "Doc. Number", "Amount in local currency", "Bucket"]);
   const records: InvoiceRecord[] = [];
