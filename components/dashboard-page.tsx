@@ -622,6 +622,62 @@ function PeriodModeSelector({ value, onChange }: { value: PeriodMode; onChange: 
   );
 }
 
+function OverviewMonthDropdown({
+  items,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  items: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  onClear: () => void;
+}) {
+  const selectedSet = new Set(selected);
+  const selectedLabel = selected.length === 0 ? "Semua bulan" : selected.length === 1 ? selected[0] : `${selected.length} bulan aktif`;
+
+  return (
+    <details className="group relative">
+      <summary className="flex list-none items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0c1724] px-3 py-2 text-left text-sm font-semibold text-slate-100 transition-colors hover:border-[#7dd3fc]/35 hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 items-center gap-2">
+          <Filter className="h-4 w-4 shrink-0 text-[#ffd166]" />
+          <span className="truncate">Bulan</span>
+        </span>
+        <span className="truncate text-xs font-bold text-[#ffd166]">{selectedLabel}</span>
+      </summary>
+      <div className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-white/10 bg-[#09111d] p-3 shadow-[0_24px_50px_rgba(0,0,0,0.42)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Filter Bulan</p>
+            <p className="text-[11px] text-slate-500">Pilih satu atau beberapa bulan untuk memadatkan overview.</p>
+          </div>
+          {selected.length > 0 ? (
+            <button type="button" onClick={onClear} className="rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold text-[#ffd166] hover:bg-[#ffd166]/10">
+              Clear
+            </button>
+          ) : null}
+        </div>
+        <div className="grid max-h-64 grid-cols-3 gap-2 overflow-auto pr-1 text-xs">
+          {items.map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={selectedSet.has(item)}
+              onClick={() => onToggle(item)}
+              className={cn(
+                "min-h-9 rounded-lg border px-2 py-1 text-left font-medium transition-colors",
+                selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
+              )}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function LineTrend({
   title,
   points,
@@ -804,10 +860,8 @@ function CombinedOverview({
       </div>
 
       <div className="border-b border-white/10 bg-[#07111f] p-3">
-        <FilterPanel
-          title="Bulan"
+        <OverviewMonthDropdown
           items={availablePeriods.length > 0 ? availablePeriods : ["Jan 2025"]}
-          columns={3}
           selected={periodFilters.periodLabels}
           onToggle={onTogglePeriodFilter}
           onClear={onClearPeriodFilter}
