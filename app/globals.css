@@ -137,6 +137,11 @@ body {
   background-color: #f0f4f8;
 }
 
+/* Override for arbitrary opacity values in light mode */
+:root[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgba(15, 23, 42, 0.12);
+}
+
 :root[data-theme="light"] .text-slate-400,
 :root[data-theme="light"] .text-slate-500 {
   color: #64748b;

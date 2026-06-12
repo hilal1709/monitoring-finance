@@ -577,7 +577,6 @@ function monthlySeries(records: BaseRecord[]): SectionMonthlyPoint[] {
   return [...grouped.entries()]
     .map(([key, item]) => ({ key, label: item.label, value: item.value, sort: item.sort }))
     .sort((a, b) => a.sort - b.sort)
-    .slice(-12)
     .map((item) => ({ key: item.key, label: item.label, value: item.value }));
 }
 
@@ -647,7 +646,6 @@ function combinedMonthly(invoiceRecords: InvoiceRecord[], paymentRecords: Paymen
   return [...grouped.entries()]
     .map(([key, item]) => ({ key, label: item.label, sort: item.sort, invoice: item.invoice, payment: item.payment }))
     .sort((a, b) => a.sort - b.sort)
-    .slice(-12)
     .map((item) => ({ key: item.key, label: item.label, invoice: item.invoice, payment: item.payment }));
 }
 
