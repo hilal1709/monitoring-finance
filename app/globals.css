@@ -124,8 +124,17 @@ body {
   color: #0f172a;
 }
 
-:root[data-theme="light"] .text-slate-300 {
+:root[data-theme="light"] .text-slate-300,
+:root[data-theme="light"] .hover\:text-white:hover {
   color: #334155;
+}
+
+:root[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.1);
+}
+
+:root[data-theme="light"] .bg-\[\#06113a\] {
+  background-color: #f0f4f8;
 }
 
 :root[data-theme="light"] .text-slate-400,
