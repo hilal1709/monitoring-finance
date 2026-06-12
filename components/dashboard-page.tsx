@@ -38,6 +38,9 @@ import type {
 type DashboardView = "overview" | WorkbookRole;
 type FilterKey = "customerType" | "customerName" | "year" | "month" | "invoiceType" | "status";
 type ReportFilters = Partial<Record<FilterKey, string[]>>;
+type OverviewFilters = {
+  periodLabels: string[];
+};
 type PeriodMode = "mom" | "yoy" | "ytd";
 type TrendPoint = SectionMonthlyPoint & {
   valueLabel: string;
@@ -292,6 +295,24 @@ function filteredSection(section: DashboardSection, filters: ReportFilters, stat
   }
 
   return sectionFromRecords(records.filter((record) => matchesFilters(record, filters)), statusOrder);
+}
+
+function filteredSectionByPeriodLabels(section: DashboardSection, periodLabels: string[], statusOrder: string[]) {
+  if (periodLabels.length === 0 || !section.records?.length) {
+    return section;
+  }
+
+  const selected = new Set(periodLabels);
+
+  return sectionFromRecords(
+    section.records.filter((record) => record.periodLabel && selected.has(record.periodLabel)),
+    statusOrder,
+  );
+}
+
+function overviewPeriodLabels(invoice?: DashboardSection, payment?: DashboardSection) {
+  const records = [...(invoice?.records ?? []), ...(payment?.records ?? [])];
+  return monthlyFromRecords(records).map((point) => point.label);
 }
 
 function filterOptions(section: DashboardSection, key: FilterKey, fallback: string[], limit = 8) {
@@ -745,18 +766,28 @@ function CombinedOverview({
   payment,
   periodMode,
   onPeriodModeChange,
+  periodFilters,
+  onTogglePeriodFilter,
+  onClearPeriodFilter,
 }: {
   invoice: LoadedReport;
   payment: LoadedReport;
   periodMode: PeriodMode;
   onPeriodModeChange: (value: PeriodMode) => void;
+  periodFilters: OverviewFilters;
+  onTogglePeriodFilter: (value: string) => void;
+  onClearPeriodFilter: () => void;
 }) {
-  const outstanding = invoice.section.totalAmount;
-  const paid = payment.section.totalAmount;
+  const invoiceSection = filteredSectionByPeriodLabels(invoice.section, periodFilters.periodLabels, statusOrders.invoice);
+  const paymentSection = filteredSectionByPeriodLabels(payment.section, periodFilters.periodLabels, statusOrders.payment);
+  const outstanding = invoiceSection.totalAmount;
+  const paid = paymentSection.totalAmount;
   const coverage = outstanding > 0 ? paid / outstanding : 0;
   const exposure = outstanding - paid;
-  const invoiceBucket4 = itemByLabel(invoice.section.statusMix, "Bucket 4")?.share ?? 0;
-  const currentPayment = itemByLabel(payment.section.statusMix, "No Risk")?.share ?? 0;
+  const invoiceBucket4 = itemByLabel(invoiceSection.statusMix, "Bucket 4")?.share ?? 0;
+  const currentPayment = itemByLabel(paymentSection.statusMix, "No Risk")?.share ?? 0;
+  const selectedPeriodCount = periodFilters.periodLabels.length;
+  const availablePeriods = overviewPeriodLabels(invoice.section, payment.section);
   const kpis = [
     { title: "Total Outstanding", value: formatCurrency(outstanding, true), icon: ReceiptText, accent: "amber" as const },
     { title: "Total Payment", value: formatCurrency(paid, true), icon: Wallet, accent: "emerald" as const },
@@ -772,6 +803,23 @@ function CombinedOverview({
         </h2>
       </div>
 
+      <div className="border-b border-white/10 bg-[#07111f] p-3">
+        <FilterPanel
+          title="Bulan"
+          items={availablePeriods.length > 0 ? availablePeriods : ["Jan 2025"]}
+          columns={3}
+          selected={periodFilters.periodLabels}
+          onToggle={onTogglePeriodFilter}
+          onClear={onClearPeriodFilter}
+        />
+      </div>
+
+      {selectedPeriodCount > 0 ? (
+        <div className="border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center text-xs font-semibold text-[#ffd166]">
+          {selectedPeriodCount} bulan aktif
+        </div>
+      ) : null}
+
       <div className="grid gap-3 p-3 xl:grid-cols-4">
         {kpis.map((item) => (
           <ReportKpi key={item.title} {...item} />
@@ -781,27 +829,27 @@ function CombinedOverview({
       <div className="grid gap-3 p-3 pt-0 xl:grid-cols-[0.95fr_0.95fr_1.25fr]">
         <DonutChart
           title="Invoice Aging by Bucket"
-          items={invoice.section.statusMix}
+          items={invoiceSection.statusMix}
           centerLabel="Invoice Aging"
           summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
         />
         <DonutChart
           title="Payment Risk Composition"
-          items={payment.section.statusMix}
+          items={paymentSection.statusMix}
           centerLabel="Payment Risk"
           summary={`Current: ${formatPercent(currentPayment)}`}
         />
-        <CombinedMonthlyBars invoice={invoice.section} payment={payment.section} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
+        <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
       </div>
 
       <div className="grid gap-3 p-3 pt-0 xl:grid-cols-2">
         <div>
           <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#ffd166]">Top Billing Customers</div>
-          <HorizontalBars items={invoice.section.topCustomers} maxItems={6} />
+          <HorizontalBars items={invoiceSection.topCustomers} maxItems={6} />
         </div>
         <div>
           <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#70f0bf]">Top Payment Customers</div>
-          <HorizontalBars items={payment.section.topCustomers} maxItems={6} />
+          <HorizontalBars items={paymentSection.topCustomers} maxItems={6} />
         </div>
       </div>
 
@@ -1060,6 +1108,7 @@ export default function DashboardPage({
   });
   const [errors, setErrors] = useState<Partial<Record<WorkbookRole, string>>>({});
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
+  const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports);
@@ -1130,6 +1179,21 @@ export default function DashboardPage({
     setReports({});
     setErrors({});
     setFilters({ invoice: {}, payment: {} });
+    setOverviewFilters({ periodLabels: [] });
+  }
+
+  function toggleOverviewPeriodFilter(value: string) {
+    setOverviewFilters((current) => {
+      const nextSelected = current.periodLabels.includes(value)
+        ? current.periodLabels.filter((item) => item !== value)
+        : [...current.periodLabels, value];
+
+      return { periodLabels: nextSelected };
+    });
+  }
+
+  function clearOverviewPeriodFilter() {
+    setOverviewFilters({ periodLabels: [] });
   }
 
   useEffect(() => {
@@ -1583,7 +1647,15 @@ export default function DashboardPage({
           ) : null}
 
           {activeRole === null && reports.invoice && reports.payment ? (
-            <CombinedOverview invoice={reports.invoice} payment={reports.payment} periodMode={periodMode} onPeriodModeChange={setPeriodMode} />
+            <CombinedOverview
+              invoice={reports.invoice}
+              payment={reports.payment}
+              periodMode={periodMode}
+              onPeriodModeChange={setPeriodMode}
+              periodFilters={overviewFilters}
+              onTogglePeriodFilter={toggleOverviewPeriodFilter}
+              onClearPeriodFilter={clearOverviewPeriodFilter}
+            />
           ) : null}
 
           {activeRole === "invoice" && reports.invoice ? (
