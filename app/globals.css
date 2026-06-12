@@ -3,6 +3,31 @@
 :root {
   --background: #050816;
   --foreground: #e2e8f0;
+  --app-bg: #07111f;
+  --app-fg: #edf4ff;
+  --surface: #0c1724;
+  --surface-2: #07111f;
+  --surface-3: #0b1320;
+  --surface-muted: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --muted-fg: #64748b;
+  --soft-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="light"] {
+  --background: #f5f7fb;
+  --foreground: #0f172a;
+  --app-bg: #eef2f8;
+  --app-fg: #0f172a;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #ffffff;
+  --surface-muted: rgba(15, 23, 42, 0.04);
+  --border: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --muted-fg: #64748b;
+  --soft-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
 @theme inline {
@@ -26,9 +51,68 @@ body {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--app-bg);
+  color: var(--app-fg);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+:root[data-theme="light"] .bg-\[\#07111f\] {
+  background-color: #eef2f8;
+}
+
+:root[data-theme="light"] .bg-\[\#07111f\]\/92,
+:root[data-theme="light"] .bg-\[\#07111f\]\/80 {
+  background-color: rgba(248, 250, 252, 0.92);
+}
+
+:root[data-theme="light"] .bg-\[\#0b1320\] {
+  background-color: #f8fafc;
+}
+
+:root[data-theme="light"] .bg-\[\#0c1724\],
+:root[data-theme="light"] .bg-\[\#0c1724\]\/80,
+:root[data-theme="light"] .bg-\[\#0c1724\]\/90 {
+  background-color: #ffffff;
+}
+
+:root[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04);
+}
+
+:root[data-theme="light"] .bg-white\/10,
+:root[data-theme="light"] .hover\:bg-white\/10:hover,
+:root[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="light"] .border-white\/15 {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+:root[data-theme="light"] .text-white {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .text-slate-100,
+:root[data-theme="light"] .text-slate-200 {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .text-slate-300 {
+  color: #334155;
+}
+
+:root[data-theme="light"] .text-slate-400,
+:root[data-theme="light"] .text-slate-500 {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .bg-black\/60 {
+  background-color: rgba(15, 23, 42, 0.35);
 }
 
 ::selection {

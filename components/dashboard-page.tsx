@@ -11,10 +11,12 @@ import {
   LayoutDashboard,
   Loader2,
   Menu,
+  MoonStar,
   PieChart,
   ReceiptText,
   RefreshCcw,
   UploadCloud,
+  SunMedium,
   Wallet,
   X,
   type LucideIcon,
@@ -41,6 +43,7 @@ type ReportFilters = Partial<Record<FilterKey, string[]>>;
 type OverviewFilters = {
   periodLabels: string[];
 };
+type ThemeMode = "dark" | "light";
 type PeriodMode = "mom" | "yoy" | "ytd";
 type TrendPoint = SectionMonthlyPoint & {
   valueLabel: string;
@@ -1164,6 +1167,7 @@ export default function DashboardPage({
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -1174,6 +1178,18 @@ export default function DashboardPage({
   const activeUploadCards = activeRole ? uploadCards.filter((card) => card.role === activeRole) : uploadCards;
   const pageTitle = activeRole === "invoice" ? "Invoice Report Monitoring" : activeRole === "payment" ? "Payment Report Monitoring" : "Overview Dashboard";
   const overviewReady = Boolean(reports.invoice && reports.payment);
+
+  useEffect(() => {
+    const storedTheme = window.localStorage.getItem("deptcontrol-theme");
+    const nextTheme: ThemeMode = storedTheme === "light" ? "light" : "dark";
+    setThemeMode(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    window.localStorage.setItem("deptcontrol-theme", themeMode);
+  }, [themeMode]);
 
   function toggleFilter(role: WorkbookRole, key: FilterKey, value: string) {
     setFilters((current) => {
@@ -1248,6 +1264,10 @@ export default function DashboardPage({
 
   function clearOverviewPeriodFilter() {
     setOverviewFilters({ periodLabels: [] });
+  }
+
+  function toggleThemeMode() {
+    setThemeMode((current) => (current === "dark" ? "light" : "dark"));
   }
 
   useEffect(() => {
@@ -1389,7 +1409,7 @@ export default function DashboardPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#07111f] text-[#edf4ff]">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
       <input
         ref={invoiceInputRef}
         type="file"
@@ -1552,7 +1572,7 @@ export default function DashboardPage({
         </div>
       </aside>
 
-      <header className="fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between gap-3 border-b border-white/10 bg-[#07111f]/92 px-4 backdrop-blur md:w-[calc(100%-16rem)] md:px-8">
+      <header className="fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between gap-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--app-bg)_92%,transparent)] px-4 backdrop-blur md:w-[calc(100%-16rem)] md:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Button
             aria-expanded={isMobileNavOpen}
@@ -1577,12 +1597,21 @@ export default function DashboardPage({
               type="button"
               variant="secondary"
               onClick={resetDashboard}
-              className="rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--app-fg)] hover:bg-[var(--surface-4)]"
             >
               <RefreshCcw className="h-4 w-4" />
               Reset
             </Button>
           ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={toggleThemeMode}
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--app-fg)] hover:bg-[var(--surface-4)]"
+          >
+            {themeMode === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+            {themeMode === "dark" ? "Light" : "Dark"}
+          </Button>
           {activeRole === "invoice" ? (
             <Button type="button" onClick={() => openWorkbookPicker("invoice")} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
               {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
