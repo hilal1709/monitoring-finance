@@ -1167,7 +1167,13 @@ export default function DashboardPage({
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
-  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof document === "undefined") {
+      return "dark";
+    }
+
+    return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  });
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
