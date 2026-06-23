@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DeptControl - AR Monitoring",
+  title: "Commercial Finance 2 - AR Monitoring",
   description: "Invoice and payment monitoring dashboard.",
 };
 

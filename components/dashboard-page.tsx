@@ -1436,7 +1436,7 @@ export default function DashboardPage({
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="truncate text-lg font-semibold tracking-tight text-white">DeptControl</h1>
+                  <h1 className="truncate text-lg font-semibold tracking-tight text-white">Commercial Finance 2</h1>
                   <p className="truncate text-xs uppercase tracking-[0.18em] text-slate-500">Commercial Finance</p>
                 </div>
               </div>
@@ -1501,7 +1501,7 @@ export default function DashboardPage({
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-white">DeptControl</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-white">Commercial Finance 2</h1>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Commercial Finance</p>
             </div>
           </div>
@@ -1527,17 +1527,6 @@ export default function DashboardPage({
               );
             })}
           </nav>
-
-          <div className="space-y-2 border-t border-white/10 pt-5">
-            <Link href="/invoice" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffd166] px-5 text-sm font-medium text-[#211600] transition-colors hover:bg-[#ffe29a]">
-              <ReceiptText className="h-4 w-4" />
-              Invoice
-            </Link>
-            <Link href="/payment" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#70f0bf] px-5 text-sm font-medium text-[#062116] transition-colors hover:bg-[#a7f3d0]">
-              <Wallet className="h-4 w-4" />
-              Payment
-            </Link>
-          </div>
         </div>
       </aside>
 
@@ -1581,36 +1570,26 @@ export default function DashboardPage({
             {themeMode === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             {themeMode === "dark" ? "Light" : "Dark"}
           </Button>
-          {activeRole === null ? (
-            <>
-              <Link href="/invoice" className="hidden h-11 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-5 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 xl:inline-flex">
-                <ReceiptText className="h-4 w-4" />
-                Detail Invoice
-              </Link>
-              <Link href="/payment" className="hidden h-11 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-5 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 xl:inline-flex">
-                <Wallet className="h-4 w-4" />
-                Detail Payment
-              </Link>
-            </>
-          ) : null}
         </div>
       </header>
 
       <main className="ml-0 min-h-screen px-4 pb-10 pt-24 md:ml-64 md:px-8">
         <div className="mx-auto max-w-[1500px] space-y-6">
-          <section id="upload" className={cn("grid gap-4", activeRole ? "lg:grid-cols-1" : "lg:grid-cols-2")}>
-            {activeUploadCards.map((card) => (
-              <UploadCard
-                key={card.role}
-                {...card}
-                isLoading={loadingRole === card.role}
-                loaded={reports[card.role]}
-                error={errors[card.role]}
-                onPick={() => openWorkbookPicker(card.role)}
-                onDrop={(files) => void uploadRole(card.role, files)}
-              />
-            ))}
-          </section>
+          {activeRole ? (
+            <section id="upload" className="grid gap-4 lg:grid-cols-1">
+              {activeUploadCards.map((card) => (
+                <UploadCard
+                  key={card.role}
+                  {...card}
+                  isLoading={loadingRole === card.role}
+                  loaded={reports[card.role]}
+                  error={errors[card.role]}
+                  onPick={() => openWorkbookPicker(card.role)}
+                  onDrop={(files) => void uploadRole(card.role, files)}
+                />
+              ))}
+            </section>
+          ) : null}
 
           {isLoadingStoredReports ? (
             <Card data-animate-block className="border-white/10 bg-[#0c1724]/80">
