@@ -7,6 +7,7 @@ import {
   Building2,
   Calculator,
   CheckCircle2,
+  ChevronDown,
   Filter,
   LayoutDashboard,
   Loader2,
@@ -24,7 +25,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type {
   DashboardRecord,
@@ -470,6 +471,9 @@ function ReportKpi({
   );
 }
 
+// Above this many options a FilterPanel collapses into a dropdown to save vertical space.
+const FILTER_DROPDOWN_THRESHOLD = 6;
+
 function FilterPanel({
   title,
   items,
@@ -487,6 +491,26 @@ function FilterPanel({
 }) {
   const selectedSet = new Set(selected);
 
+  const optionButton = (item: string) => (
+    <button
+      key={`${title}-${item}`}
+      type="button"
+      aria-pressed={selectedSet.has(item)}
+      onClick={() => onToggle?.(item)}
+      className={cn(
+        "min-h-8 truncate rounded-md border px-2 py-1 text-left text-xs font-medium transition-colors",
+        selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
+      )}
+    >
+      {item}
+    </button>
+  );
+
+  // Long option lists become a dropdown so the filter column stays short.
+  if (items.length > FILTER_DROPDOWN_THRESHOLD) {
+    return <FilterDropdown title={title} items={items} columns={columns} selected={selected} onToggle={onToggle} onClear={onClear} optionButton={optionButton} />;
+  }
+
   return (
     <div className="rounded-lg border border-white/10 bg-[#0c1724] p-3">
       <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-slate-300">
@@ -500,21 +524,88 @@ function FilterPanel({
         )}
       </div>
       <div className={cn("grid gap-1", columns === 2 && "grid-cols-2", columns === 3 && "grid-cols-3")}>
-        {items.map((item) => (
-          <button
-            key={`${title}-${item}`}
-            type="button"
-            aria-pressed={selectedSet.has(item)}
-            onClick={() => onToggle?.(item)}
-            className={cn(
-              "min-h-8 truncate rounded-md border px-2 py-1 text-left text-xs font-medium transition-colors",
-              selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
-            )}
-          >
-            {item}
-          </button>
-        ))}
+        {items.map((item) => optionButton(item))}
       </div>
+    </div>
+  );
+}
+
+function FilterDropdown({
+  title,
+  items,
+  columns = 1,
+  selected = [],
+  onClear,
+  optionButton,
+}: {
+  title: string;
+  items: string[];
+  columns?: 1 | 2 | 3;
+  selected?: string[];
+  onToggle?: (item: string) => void;
+  onClear?: () => void;
+  optionButton: (item: string) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedCount = selected.length;
+  const summary = selectedCount === 0 ? "Semua" : selectedCount === 1 ? selected[0] : `${selectedCount} dipilih`;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handlePointer = (event: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("touchstart", handlePointer);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("touchstart", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative rounded-lg border border-white/10 bg-[#0c1724] p-3">
+      <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-slate-300">
+        <span>{title}</span>
+        {selectedCount > 0 ? (
+          <button type="button" onClick={onClear} className="rounded px-1.5 py-0.5 text-[10px] font-bold text-[#ffd166] hover:bg-[#ffd166]/10">
+            Clear
+          </button>
+        ) : (
+          <Filter className="h-3 w-3 text-slate-500" />
+        )}
+      </div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-left text-xs font-medium text-slate-200 transition-colors hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10"
+      >
+        <span className={cn("truncate", selectedCount > 0 && "text-[#ffd166]")}>{summary}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="absolute left-0 right-0 top-[calc(100%-0.25rem)] z-20 mx-3 rounded-lg border border-white/10 bg-[#09111d] p-2 shadow-[0_24px_50px_rgba(0,0,0,0.42)]">
+          <div className={cn("grid max-h-56 gap-1 overflow-auto pr-0.5", columns === 2 && "grid-cols-2", columns === 3 && "grid-cols-3")}>
+            {items.map((item) => optionButton(item))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1167,7 +1258,6 @@ function ReportFrame({
 function UploadCard({
   role,
   title,
-  description,
   isLoading,
   loaded,
   error,
@@ -1176,7 +1266,7 @@ function UploadCard({
 }: {
   role: WorkbookRole;
   title: string;
-  description: string;
+  description?: string;
   isLoading: boolean;
   loaded?: LoadedReport;
   error?: string;
@@ -1197,10 +1287,13 @@ function UploadCard({
         onDrop(event.dataTransfer.files);
       }}
     >
-      <CardHeader className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className={cn("grid h-12 w-12 place-items-center rounded-lg border", accent)}>
-            <Icon className="h-6 w-6" />
+      <CardHeader className="p-3.5 pb-0">
+        <div className="flex items-center gap-3">
+          <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", accent)}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base text-white">{title}</CardTitle>
           </div>
           {loaded ? (
             <Badge className="border border-[#70f0bf]/25 bg-[#70f0bf]/10 text-[#70f0bf]">
@@ -1209,24 +1302,22 @@ function UploadCard({
             </Badge>
           ) : null}
         </div>
-        <CardTitle className="text-2xl text-white">{title}</CardTitle>
-        <CardDescription className="leading-6">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 p-5 pt-0">
-        <Button type="button" onClick={onPick} disabled={isLoading} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-          {isLoading ? "Processing" : `Upload ${role === "invoice" ? "Invoice" : "Payment"}`}
-        </Button>
+      <CardContent className="space-y-2.5 p-3.5">
+        <div className="flex items-center gap-2.5">
+          <Button type="button" size="sm" onClick={onPick} disabled={isLoading} className="shrink-0 rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            {isLoading ? "Processing" : `Upload ${role === "invoice" ? "Invoice" : "Payment"}`}
+          </Button>
+          {!loaded ? <span className="min-w-0 flex-1 truncate text-xs text-slate-500">Drop file .xlsx di sini</span> : null}
+        </div>
         {loaded ? (
-          <div className="rounded-lg border border-white/10 bg-[#07111f] p-3 text-sm">
+          <div className="rounded-lg border border-white/10 bg-[#07111f] p-2.5 text-xs">
             <p className="truncate font-medium text-white">{compactFileName(loaded.file.name)}</p>
-            <p className="mt-1 text-slate-500">{formatNumber(loaded.file.rowCount)} rows - {formatCurrency(loaded.file.totalAmount, true)}</p>
-            {loaded.id ? <p className="mt-1 text-xs text-[#70f0bf]">Database upload #{loaded.id}</p> : null}
+            <p className="mt-1 text-slate-500">{formatNumber(loaded.file.rowCount)} rows - {formatCurrency(loaded.file.totalAmount, true)}{loaded.id ? ` - DB #${loaded.id}` : ""}</p>
           </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-white/15 bg-[#07111f] p-4 text-center text-sm text-slate-500">Drop file .xlsx di sini</div>
-        )}
-        {error ? <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-3 text-sm text-[#ffb4a6]">{error}</p> : null}
+        ) : null}
+        {error ? <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-2.5 text-xs text-[#ffb4a6]">{error}</p> : null}
       </CardContent>
     </Card>
   );
