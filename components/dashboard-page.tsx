@@ -793,14 +793,14 @@ function LineTrend({
     .join(" ");
 
   return (
-    <div className="h-full rounded-lg border border-white/10 bg-[#0c1724] p-4">
+    <div className="h-full rounded-lg border border-white/10 bg-[#0c1724] p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-bold text-slate-100">{title}</h4>
         <PeriodModeSelector value={periodMode} onChange={onPeriodModeChange} />
       </div>
       {points.length > 0 ? (
         <>
-          <svg className="h-56 w-full overflow-visible" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+          <svg className="h-44 w-full overflow-visible" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
             {[8, 15, 22, 29, 36].map((y) => (
               <line key={y} x1="3" x2="98" y1={y} y2={y} stroke="rgba(148,163,184,0.28)" strokeWidth="0.25" />
             ))}
@@ -826,7 +826,7 @@ function LineTrend({
           </div>
         </>
       ) : (
-        <div className="grid h-56 place-items-center text-center text-xs font-semibold text-slate-400">Tidak ada data pembanding</div>
+        <div className="grid h-44 place-items-center text-center text-xs font-semibold text-slate-400">Tidak ada data pembanding</div>
       )}
     </div>
   );
@@ -1057,22 +1057,22 @@ function ReportFrame({
 
   return (
     <section id={id} data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex min-h-14 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 text-center">
-        <h2 className="text-xl font-black uppercase tracking-wide text-white md:text-3xl">
-          {title} <span className="text-[#ffd166]">|</span> <span className="text-base text-[#ffd166] md:text-xl">Commercial Finance 2 - Section Non Cemen</span>
+      <div className="flex min-h-11 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center">
+        <h2 className="text-lg font-black uppercase tracking-wide text-white md:text-2xl">
+          {title} <span className="text-[#ffd166]">|</span> <span className="text-sm text-[#ffd166] md:text-lg">Section Non Cemen</span>
         </h2>
       </div>
 
-      <div className={cn("grid gap-3 p-3", isInvoice ? "xl:grid-cols-5" : "xl:grid-cols-4")}>
+      <div className={cn("grid gap-2.5 p-2.5", isInvoice ? "xl:grid-cols-5" : "xl:grid-cols-4")}>
         {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} />
+          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
         ))}
       </div>
 
-      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[1.25fr_1.3fr_1.3fr_0.8fr]" : "xl:grid-cols-[1.1fr_0.9fr_1.1fr_0.95fr]")}>
+      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-[1.25fr_1.3fr_1.3fr_0.8fr]" : "xl:grid-cols-[1.1fr_0.9fr_1.1fr_0.95fr]")}>
         <div className="grid gap-3">
           <FilterPanel
-            title={isInvoice ? "Cust. Typ" : "Custo. Typ"}
+            title="Customer Type"
             items={customerTypes}
             columns={2}
             selected={filters.customerType}
@@ -1080,7 +1080,7 @@ function ReportFrame({
             onClear={() => onClearFilter("customerType")}
           />
           <FilterPanel
-            title={isInvoice ? "Cust. Name" : "Cust.Name"}
+            title="Customer Name"
             items={customerNames}
             selected={filters.customerName}
             onToggle={(value) => onToggleFilter("customerName", value)}
@@ -1119,7 +1119,7 @@ function ReportFrame({
 
         <div className="grid gap-3">
           <FilterPanel
-            title="Invoice Typ"
+            title="Invoice Type"
             items={invoiceTypes}
             selected={filters.invoiceType}
             onToggle={(value) => onToggleFilter("invoiceType", value)}
@@ -1128,31 +1128,29 @@ function ReportFrame({
         </div>
 
         {isInvoice ? (
-          <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" />
+          <DonutChart title="Aging by Bucket" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Bucket 4 >365" compact />
         ) : (
           <StatusBars title="Payment Aging by Risk" items={activeSection.statusMix} />
         )}
       </div>
 
-      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[0.9fr_1fr_1.25fr]" : "xl:grid-cols-[1fr_0.9fr]")}>
+      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-[1fr_1fr]" : "xl:grid-cols-[1fr_0.9fr]")}>
         {isInvoice ? (
           <>
-            <HorizontalBars title="Top Customers by Outstanding" items={activeSection.topCustomers} maxItems={8} showValue={false} />
-            <DonutChart title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" />
-            <StatusBars title="Outstanding Aging by Bucket" items={activeSection.statusMix} />
+            <HorizontalBars title="Top Customers" items={activeSection.topCustomers} maxItems={6} showValue={false} />
+            <DonutChart title="By Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" compact />
           </>
         ) : (
           <>
-            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Current" />
+            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Current" compact />
             <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} />
           </>
         )}
       </div>
 
-      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[0.7fr_1.55fr]" : "xl:grid-cols-[1fr_1fr]")}>
-        {isInvoice ? <HorizontalBars title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} maxItems={8} showValue={false} /> : null}
-        <LineTrend title={isInvoice ? "Outstanding Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
-        {!isInvoice ? <DonutChart title="Payment by Customer Type" items={activeSection.customerTypes} centerLabel="Type" /> : null}
+      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-1" : "xl:grid-cols-[1fr_1fr]")}>
+        <LineTrend title={isInvoice ? "Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
+        {!isInvoice ? <DonutChart title="Payment by Customer Type" items={activeSection.customerTypes} centerLabel="Type" compact /> : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#07111f] px-3 py-2 text-xs font-semibold text-slate-400">
