@@ -1245,11 +1245,6 @@ export default function DashboardPage({
     paymentInputRef.current?.click();
   }
 
-  function openWorkbookPickerFromMobile(role: WorkbookRole) {
-    setIsMobileNavOpen(false);
-    openWorkbookPicker(role);
-  }
-
   function resetDashboard() {
     dashboardReportsCache = {};
     setReports({});
@@ -1494,14 +1489,6 @@ export default function DashboardPage({
                   Reset
                 </Button>
               ) : null}
-              <Button type="button" onClick={() => openWorkbookPickerFromMobile("invoice")} disabled={loadingRole !== null} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-                {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
-                Upload Invoice
-              </Button>
-              <Button type="button" onClick={() => openWorkbookPickerFromMobile("payment")} disabled={loadingRole !== null} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
-                {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-                Upload Payment
-              </Button>
             </div>
           </aside>
         </div>
@@ -1542,38 +1529,14 @@ export default function DashboardPage({
           </nav>
 
           <div className="space-y-2 border-t border-white/10 pt-5">
-            {activeRole === "invoice" ? (
-              <Button type="button" onClick={() => openWorkbookPicker("invoice")} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-                <ReceiptText className="h-4 w-4" />
-                Upload Invoice
-              </Button>
-            ) : activeRole === null ? (
-              <Button type="button" onClick={() => openWorkbookPicker("invoice")} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-                <ReceiptText className="h-4 w-4" />
-                Upload Invoice
-              </Button>
-            ) : (
-              <Link href="/invoice" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffd166] px-5 text-sm font-medium text-[#211600] transition-colors hover:bg-[#ffe29a]">
-                <ReceiptText className="h-4 w-4" />
-                Invoice
-              </Link>
-            )}
-            {activeRole === "payment" ? (
-              <Button type="button" onClick={() => openWorkbookPicker("payment")} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
-                <Wallet className="h-4 w-4" />
-                Upload Payment
-              </Button>
-            ) : activeRole === null ? (
-              <Button type="button" onClick={() => openWorkbookPicker("payment")} className="w-full rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
-                <Wallet className="h-4 w-4" />
-                Upload Payment
-              </Button>
-            ) : (
-              <Link href="/payment" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#70f0bf] px-5 text-sm font-medium text-[#062116] transition-colors hover:bg-[#a7f3d0]">
-                <Wallet className="h-4 w-4" />
-                Payment
-              </Link>
-            )}
+            <Link href="/invoice" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffd166] px-5 text-sm font-medium text-[#211600] transition-colors hover:bg-[#ffe29a]">
+              <ReceiptText className="h-4 w-4" />
+              Invoice
+            </Link>
+            <Link href="/payment" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#70f0bf] px-5 text-sm font-medium text-[#062116] transition-colors hover:bg-[#a7f3d0]">
+              <Wallet className="h-4 w-4" />
+              Payment
+            </Link>
           </div>
         </div>
       </aside>
@@ -1618,26 +1581,8 @@ export default function DashboardPage({
             {themeMode === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             {themeMode === "dark" ? "Light" : "Dark"}
           </Button>
-          {activeRole === "invoice" ? (
-            <Button type="button" onClick={() => openWorkbookPicker("invoice")} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-              {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
-              Upload Invoice
-            </Button>
-          ) : activeRole === "payment" ? (
-            <Button type="button" onClick={() => openWorkbookPicker("payment")} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
-              {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-              Upload Payment
-            </Button>
-          ) : (
+          {activeRole === null ? (
             <>
-              <Button type="button" onClick={() => openWorkbookPicker("invoice")} disabled={loadingRole !== null} className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-                {loadingRole === "invoice" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
-                Upload Invoice
-              </Button>
-              <Button type="button" onClick={() => openWorkbookPicker("payment")} disabled={loadingRole !== null} className="rounded-lg bg-[#70f0bf] text-[#062116] hover:bg-[#a7f3d0]">
-                {loadingRole === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-                Upload Payment
-              </Button>
               <Link href="/invoice" className="hidden h-11 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-5 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 xl:inline-flex">
                 <ReceiptText className="h-4 w-4" />
                 Detail Invoice
@@ -1647,7 +1592,7 @@ export default function DashboardPage({
                 Detail Payment
               </Link>
             </>
-          )}
+          ) : null}
         </div>
       </header>
 
