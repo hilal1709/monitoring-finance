@@ -159,6 +159,20 @@ body {
   color: #94a3b8;
 }
 
+/* The pastel accent colors are tuned for dark surfaces; on light mode's white
+   surfaces they wash out. Darken the TEXT usages only (bg-[...] is untouched). */
+:root[data-theme="light"] .text-\[\#ffd166\] {
+  color: #b45309;
+}
+
+:root[data-theme="light"] .text-\[\#70f0bf\] {
+  color: #047857;
+}
+
+:root[data-theme="light"] .text-\[\#7dd3fc\] {
+  color: #0369a1;
+}
+
 /* Value labels printed on top of bright chart bars: white core + dark halo
    stays legible over yellow/green/cyan bars and over the empty track in both themes. */
 .chart-value {

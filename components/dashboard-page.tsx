@@ -540,7 +540,7 @@ function rankedItemTooltip(item: RankedItem) {
   return `${item.label}: ${formatCurrency(item.value)} | ${formatPercent(item.share)} | ${formatNumber(item.count)} rows`;
 }
 
-function DonutChart({ title, items, centerLabel, summary, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string; compact?: boolean }) {
+function DonutChart({ title, items, centerLabel, centerValue, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; centerValue?: string; compact?: boolean }) {
   const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
   const gradient = items
     .map((item, index) => {
@@ -555,11 +555,17 @@ function DonutChart({ title, items, centerLabel, summary, compact = false }: { t
   return (
     <div className="h-full rounded-lg border border-white/10 bg-[#0c1724]">
       <ChartTitle title={title} />
-      {summary ? <div className="border-b border-white/10 px-3 py-2 text-center text-xs font-bold text-[#ffd166]">{summary}</div> : null}
       <div className={cn("flex flex-col items-center justify-center gap-4 p-3 2xl:flex-row", compact ? "min-h-[160px]" : "min-h-[220px]")}>
         <div className={cn("relative grid shrink-0 place-items-center rounded-full border border-white/10", compact ? "h-32 w-32" : "h-44 w-44")} style={{ background }}>
-          <div className={cn("grid place-items-center rounded-full border border-white/10 bg-[#0c1724] text-center text-xs font-bold text-slate-100", compact ? "h-16 w-16" : "h-20 w-20")}>
-            {centerLabel ?? "Total"}
+          <div className={cn("grid place-items-center rounded-full border border-white/10 bg-[#0c1724] px-1 text-center leading-tight", compact ? "h-16 w-16" : "h-20 w-20")}>
+            {centerValue ? (
+              <span className="flex flex-col">
+                <span className={cn("font-black text-[#ffd166]", compact ? "text-base" : "text-lg")}>{centerValue}</span>
+                {centerLabel ? <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{centerLabel}</span> : null}
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-slate-100">{centerLabel ?? "Total"}</span>
+            )}
           </div>
         </div>
         <div className="w-full min-w-0 max-w-[240px] space-y-1 text-[10px] text-slate-300 2xl:w-44">
@@ -927,7 +933,6 @@ function CombinedOverview({
   const exposure = outstanding - paid;
   const invoiceBucket4 = itemByLabel(invoiceSection.statusMix, "Bucket 4")?.share ?? 0;
   const currentPayment = itemByLabel(paymentSection.statusMix, "No Risk")?.share ?? 0;
-  const selectedPeriodCount = periodFilters.periodLabels.length;
   const availablePeriods = overviewPeriodLabels(invoice.section, payment.section);
   const kpis = [
     { title: "Total Outstanding", value: formatCurrency(outstanding, true), icon: ReceiptText, accent: "amber" as const },
@@ -951,9 +956,6 @@ function CombinedOverview({
           onToggle={onTogglePeriodFilter}
           onClear={onClearPeriodFilter}
         />
-        {selectedPeriodCount > 0 ? (
-          <span className="text-xs font-semibold text-[#ffd166]">{selectedPeriodCount} bulan aktif</span>
-        ) : null}
       </div>
 
       <div className="grid gap-2.5 p-2.5 xl:grid-cols-4">
@@ -966,15 +968,15 @@ function CombinedOverview({
         <DonutChart
           title="Invoice Aging by Bucket"
           items={invoiceSection.statusMix}
-          centerLabel="Invoice Aging"
-          summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
+          centerValue={formatPercent(invoiceBucket4)}
+          centerLabel="Bucket 4 >365"
           compact
         />
         <DonutChart
           title="Payment Risk Composition"
           items={paymentSection.statusMix}
-          centerLabel="Payment Risk"
-          summary={`Current: ${formatPercent(currentPayment)}`}
+          centerValue={formatPercent(currentPayment)}
+          centerLabel="Current"
           compact
         />
         <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
@@ -1141,7 +1143,7 @@ function ReportFrame({
           </>
         ) : (
           <>
-            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} />
+            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Current" />
             <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} />
           </>
         )}
