@@ -440,26 +440,28 @@ function ReportKpi({
   value,
   detail,
   accent = "amber",
+  compact = false,
 }: {
   icon: LucideIcon;
   title: string;
   value: string;
   detail?: string;
   accent?: "amber" | "cyan" | "emerald";
+  compact?: boolean;
 }) {
   const accentClass = accent === "emerald" ? "text-[#70f0bf]" : accent === "cyan" ? "text-[#7dd3fc]" : "text-[#ffd166]";
   const accentPanel = accent === "emerald" ? "border-[#70f0bf]/25 bg-[#70f0bf]/10" : accent === "cyan" ? "border-[#7dd3fc]/25 bg-[#7dd3fc]/10" : "border-[#ffd166]/25 bg-[#ffd166]/10";
 
   return (
-    <div className="grid min-h-24 min-w-0 grid-cols-[56px_minmax(0,1fr)] rounded-lg border border-white/10 bg-[#0c1724] shadow-[0_18px_35px_rgba(0,0,0,0.18)]">
-      <div className={cn("m-3 grid place-items-center rounded-lg border", accentPanel, accentClass)}>
-        <Icon className="h-6 w-6" />
+    <div className={cn("grid min-w-0 rounded-lg border border-white/10 bg-[#0c1724] shadow-[0_18px_35px_rgba(0,0,0,0.18)]", compact ? "min-h-16 grid-cols-[44px_minmax(0,1fr)]" : "min-h-24 grid-cols-[56px_minmax(0,1fr)]")}>
+      <div className={cn("grid place-items-center rounded-lg border", compact ? "m-2" : "m-3", accentPanel, accentClass)}>
+        <Icon className={compact ? "h-5 w-5" : "h-6 w-6"} />
       </div>
-      <div className="flex min-w-0 flex-col justify-between p-3 pl-0">
+      <div className={cn("flex min-w-0 flex-col justify-between pl-0", compact ? "p-2" : "p-3")}>
         <div className="max-w-full break-words text-[10px] font-semibold uppercase leading-snug tracking-[0.14em] text-slate-500" title={title}>
           {title}
         </div>
-        <div className={cn("mt-2 min-w-0 break-words text-right text-xl font-semibold leading-tight", accentClass)} title={value}>
+        <div className={cn("min-w-0 break-words text-right font-semibold leading-tight", compact ? "mt-1 text-lg" : "mt-2 text-xl", accentClass)} title={value}>
           {value}
         </div>
         {detail ? <div className="mt-1 text-right text-[10px] font-semibold leading-tight text-slate-400">{detail}</div> : null}
@@ -538,7 +540,7 @@ function rankedItemTooltip(item: RankedItem) {
   return `${item.label}: ${formatCurrency(item.value)} | ${formatPercent(item.share)} | ${formatNumber(item.count)} rows`;
 }
 
-function DonutChart({ title, items, centerLabel, summary }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string }) {
+function DonutChart({ title, items, centerLabel, summary, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string; compact?: boolean }) {
   const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
   const gradient = items
     .map((item, index) => {
@@ -554,9 +556,9 @@ function DonutChart({ title, items, centerLabel, summary }: { title: string; ite
     <div className="h-full rounded-lg border border-white/10 bg-[#0c1724]">
       <ChartTitle title={title} />
       {summary ? <div className="border-b border-white/10 px-3 py-2 text-center text-xs font-bold text-[#ffd166]">{summary}</div> : null}
-      <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 p-3 2xl:flex-row">
-        <div className="relative grid h-44 w-44 shrink-0 place-items-center rounded-full border border-white/10" style={{ background }}>
-          <div className="grid h-20 w-20 place-items-center rounded-full border border-white/10 bg-[#0c1724] text-center text-xs font-bold text-slate-100">
+      <div className={cn("flex flex-col items-center justify-center gap-4 p-3 2xl:flex-row", compact ? "min-h-[160px]" : "min-h-[220px]")}>
+        <div className={cn("relative grid shrink-0 place-items-center rounded-full border border-white/10", compact ? "h-32 w-32" : "h-44 w-44")} style={{ background }}>
+          <div className={cn("grid place-items-center rounded-full border border-white/10 bg-[#0c1724] text-center text-xs font-bold text-slate-100", compact ? "h-16 w-16" : "h-20 w-20")}>
             {centerLabel ?? "Total"}
           </div>
         </div>
@@ -775,12 +777,12 @@ function CombinedMonthlyBars({
 
   const points = [...monthMap.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-12)
+    .slice(-6)
     .map(([key, value]) => ({ key, ...value }));
   const max = Math.max(...points.flatMap((point) => [Math.abs(point.invoice), Math.abs(point.payment)]), 1);
 
   return (
-    <div className="space-y-3 rounded-lg border border-white/10 bg-[#0c1724] p-4">
+    <div className="space-y-2 rounded-lg border border-white/10 bg-[#0c1724] p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-100">
         <span>Billing vs Payment Trend</span>
         <span className="flex flex-wrap items-center gap-3">
@@ -856,57 +858,56 @@ function CombinedOverview({
 
   return (
     <section id="overview-dashboard" data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex min-h-14 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 text-center">
-        <h2 className="text-xl font-black uppercase tracking-wide text-white md:text-3xl">
-          Overview Report Monitoring <span className="text-[#ffd166]">|</span> <span className="text-base text-[#ffd166] md:text-xl">Invoice + Payment</span>
+      <div className="flex min-h-11 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center">
+        <h2 className="text-lg font-black uppercase tracking-wide text-white md:text-2xl">
+          Overview Report Monitoring <span className="text-[#ffd166]">|</span> <span className="text-sm text-[#ffd166] md:text-lg">Invoice + Payment</span>
         </h2>
       </div>
 
-      <div className="border-b border-white/10 bg-[#07111f] p-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-[#07111f] p-2.5">
         <OverviewMonthDropdown
           items={availablePeriods.length > 0 ? availablePeriods : ["Jan 2025"]}
           selected={periodFilters.periodLabels}
           onToggle={onTogglePeriodFilter}
           onClear={onClearPeriodFilter}
         />
+        {selectedPeriodCount > 0 ? (
+          <span className="text-xs font-semibold text-[#ffd166]">{selectedPeriodCount} bulan aktif</span>
+        ) : null}
       </div>
 
-      {selectedPeriodCount > 0 ? (
-        <div className="border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center text-xs font-semibold text-[#ffd166]">
-          {selectedPeriodCount} bulan aktif
-        </div>
-      ) : null}
-
-      <div className="grid gap-3 p-3 xl:grid-cols-4">
+      <div className="grid gap-2.5 p-2.5 xl:grid-cols-4">
         {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} />
+          <ReportKpi key={item.title} {...item} compact />
         ))}
       </div>
 
-      <div className="grid gap-3 p-3 pt-0 xl:grid-cols-[0.95fr_0.95fr_1.25fr]">
+      <div className="grid gap-2.5 p-2.5 pt-0 xl:grid-cols-[0.95fr_0.95fr_1.25fr]">
         <DonutChart
           title="Invoice Aging by Bucket"
           items={invoiceSection.statusMix}
           centerLabel="Invoice Aging"
           summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
+          compact
         />
         <DonutChart
           title="Payment Risk Composition"
           items={paymentSection.statusMix}
           centerLabel="Payment Risk"
           summary={`Current: ${formatPercent(currentPayment)}`}
+          compact
         />
         <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
       </div>
 
-      <div className="grid gap-3 p-3 pt-0 xl:grid-cols-2">
+      <div className="grid gap-2.5 p-2.5 pt-0 xl:grid-cols-2">
         <div>
           <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#ffd166]">Top Billing Customers</div>
-          <HorizontalBars items={invoiceSection.topCustomers} maxItems={6} />
+          <HorizontalBars items={invoiceSection.topCustomers} maxItems={5} />
         </div>
         <div>
           <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#70f0bf]">Top Payment Customers</div>
-          <HorizontalBars items={paymentSection.topCustomers} maxItems={6} />
+          <HorizontalBars items={paymentSection.topCustomers} maxItems={5} />
         </div>
       </div>
 
