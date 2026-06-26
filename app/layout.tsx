@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Commercial Finance 2 - AR Monitoring",
+  title: "Commercial Financial 2",
   description: "Invoice and payment monitoring dashboard.",
 };
 
@@ -25,8 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <Script id="theme-init" strategy="beforeInteractive">
-        {`(() => {
+      <body className="min-h-full flex flex-col">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(() => {
           try {
             const storedTheme = window.localStorage.getItem('deptcontrol-theme');
             const theme = storedTheme === 'light' ? 'light' : 'dark';
@@ -35,8 +36,9 @@ export default function RootLayout({
             document.documentElement.dataset.theme = 'dark';
           }
         })();`}
-      </Script>
-      <body className="min-h-full flex flex-col">{children}</body>
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

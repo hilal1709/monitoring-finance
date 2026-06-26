@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -7,7 +8,6 @@ import {
   Building2,
   Calculator,
   CheckCircle2,
-  ChevronDown,
   Filter,
   LayoutDashboard,
   Loader2,
@@ -25,7 +25,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type {
   DashboardRecord,
@@ -471,9 +471,6 @@ function ReportKpi({
   );
 }
 
-// Above this many options a FilterPanel collapses into a dropdown to save vertical space.
-const FILTER_DROPDOWN_THRESHOLD = 6;
-
 function FilterPanel({
   title,
   items,
@@ -491,26 +488,6 @@ function FilterPanel({
 }) {
   const selectedSet = new Set(selected);
 
-  const optionButton = (item: string) => (
-    <button
-      key={`${title}-${item}`}
-      type="button"
-      aria-pressed={selectedSet.has(item)}
-      onClick={() => onToggle?.(item)}
-      className={cn(
-        "min-h-8 truncate rounded-md border px-2 py-1 text-left text-xs font-medium transition-colors",
-        selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
-      )}
-    >
-      {item}
-    </button>
-  );
-
-  // Long option lists become a dropdown so the filter column stays short.
-  if (items.length > FILTER_DROPDOWN_THRESHOLD) {
-    return <FilterDropdown title={title} items={items} columns={columns} selected={selected} onToggle={onToggle} onClear={onClear} optionButton={optionButton} />;
-  }
-
   return (
     <div className="rounded-lg border border-white/10 bg-[#0c1724] p-3">
       <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-slate-300">
@@ -524,88 +501,21 @@ function FilterPanel({
         )}
       </div>
       <div className={cn("grid gap-1", columns === 2 && "grid-cols-2", columns === 3 && "grid-cols-3")}>
-        {items.map((item) => optionButton(item))}
-      </div>
-    </div>
-  );
-}
-
-function FilterDropdown({
-  title,
-  items,
-  columns = 1,
-  selected = [],
-  onClear,
-  optionButton,
-}: {
-  title: string;
-  items: string[];
-  columns?: 1 | 2 | 3;
-  selected?: string[];
-  onToggle?: (item: string) => void;
-  onClear?: () => void;
-  optionButton: (item: string) => React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selectedCount = selected.length;
-  const summary = selectedCount === 0 ? "Semua" : selectedCount === 1 ? selected[0] : `${selectedCount} dipilih`;
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handlePointer = (event: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointer);
-    document.addEventListener("touchstart", handlePointer);
-    document.addEventListener("keydown", handleKey);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointer);
-      document.removeEventListener("touchstart", handlePointer);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="relative rounded-lg border border-white/10 bg-[#0c1724] p-3">
-      <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-slate-300">
-        <span>{title}</span>
-        {selectedCount > 0 ? (
-          <button type="button" onClick={onClear} className="rounded px-1.5 py-0.5 text-[10px] font-bold text-[#ffd166] hover:bg-[#ffd166]/10">
-            Clear
+        {items.map((item) => (
+          <button
+            key={`${title}-${item}`}
+            type="button"
+            aria-pressed={selectedSet.has(item)}
+            onClick={() => onToggle?.(item)}
+            className={cn(
+              "min-h-8 truncate rounded-md border px-2 py-1 text-left text-xs font-medium transition-colors",
+              selectedSet.has(item) ? "border-[#ffd166]/50 bg-[#ffd166] text-[#211600]" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10",
+            )}
+          >
+            {item}
           </button>
-        ) : (
-          <Filter className="h-3 w-3 text-slate-500" />
-        )}
+        ))}
       </div>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-left text-xs font-medium text-slate-200 transition-colors hover:border-[#7dd3fc]/35 hover:bg-[#7dd3fc]/10"
-      >
-        <span className={cn("truncate", selectedCount > 0 && "text-[#ffd166]")}>{summary}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform", open && "rotate-180")} />
-      </button>
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%-0.25rem)] z-20 mx-3 rounded-lg border border-white/10 bg-[#09111d] p-2 shadow-[0_24px_50px_rgba(0,0,0,0.42)]">
-          <div className={cn("grid max-h-56 gap-1 overflow-auto pr-0.5", columns === 2 && "grid-cols-2", columns === 3 && "grid-cols-3")}>
-            {items.map((item) => optionButton(item))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -631,7 +541,7 @@ function rankedItemTooltip(item: RankedItem) {
   return `${item.label}: ${formatCurrency(item.value)} | ${formatPercent(item.share)} | ${formatNumber(item.count)} rows`;
 }
 
-function DonutChart({ title, items, centerLabel, centerValue, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; centerValue?: string; compact?: boolean }) {
+function DonutChart({ title, items, centerLabel, summary, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string; compact?: boolean }) {
   const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
   const gradient = items
     .map((item, index) => {
@@ -646,17 +556,11 @@ function DonutChart({ title, items, centerLabel, centerValue, compact = false }:
   return (
     <div className="h-full rounded-lg border border-white/10 bg-[#0c1724]">
       <ChartTitle title={title} />
+      {summary ? <div className="border-b border-white/10 px-3 py-2 text-center text-xs font-bold text-[#ffd166]">{summary}</div> : null}
       <div className={cn("flex flex-col items-center justify-center gap-4 p-3 2xl:flex-row", compact ? "min-h-[160px]" : "min-h-[220px]")}>
         <div className={cn("relative grid shrink-0 place-items-center rounded-full border border-white/10", compact ? "h-32 w-32" : "h-44 w-44")} style={{ background }}>
-          <div className={cn("grid place-items-center rounded-full border border-white/10 bg-[#0c1724] px-1 text-center leading-tight", compact ? "h-16 w-16" : "h-20 w-20")}>
-            {centerValue ? (
-              <span className="flex flex-col">
-                <span className={cn("font-black text-[#ffd166]", compact ? "text-base" : "text-lg")}>{centerValue}</span>
-                {centerLabel ? <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{centerLabel}</span> : null}
-              </span>
-            ) : (
-              <span className="text-xs font-bold text-slate-100">{centerLabel ?? "Total"}</span>
-            )}
+          <div className={cn("grid place-items-center rounded-full border border-white/10 bg-[#0c1724] text-center text-xs font-bold text-slate-100", compact ? "h-16 w-16" : "h-20 w-20")}>
+            {centerLabel ?? "Total"}
           </div>
         </div>
         <div className="w-full min-w-0 max-w-[240px] space-y-1 text-[10px] text-slate-300 2xl:w-44">
@@ -884,14 +788,14 @@ function LineTrend({
     .join(" ");
 
   return (
-    <div className="h-full rounded-lg border border-white/10 bg-[#0c1724] p-3">
+    <div className="h-full rounded-lg border border-white/10 bg-[#0c1724] p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-bold text-slate-100">{title}</h4>
         <PeriodModeSelector value={periodMode} onChange={onPeriodModeChange} />
       </div>
       {points.length > 0 ? (
         <>
-          <svg className="h-44 w-full overflow-visible" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+          <svg className="h-56 w-full overflow-visible" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
             {[8, 15, 22, 29, 36].map((y) => (
               <line key={y} x1="3" x2="98" y1={y} y2={y} stroke="rgba(148,163,184,0.28)" strokeWidth="0.25" />
             ))}
@@ -917,7 +821,7 @@ function LineTrend({
           </div>
         </>
       ) : (
-        <div className="grid h-44 place-items-center text-center text-xs font-semibold text-slate-400">Tidak ada data pembanding</div>
+        <div className="grid h-56 place-items-center text-center text-xs font-semibold text-slate-400">Tidak ada data pembanding</div>
       )}
     </div>
   );
@@ -1024,6 +928,7 @@ function CombinedOverview({
   const exposure = outstanding - paid;
   const invoiceBucket4 = itemByLabel(invoiceSection.statusMix, "Bucket 4")?.share ?? 0;
   const currentPayment = itemByLabel(paymentSection.statusMix, "No Risk")?.share ?? 0;
+  const selectedPeriodCount = periodFilters.periodLabels.length;
   const availablePeriods = overviewPeriodLabels(invoice.section, payment.section);
   const kpis = [
     { title: "Total Outstanding", value: formatCurrency(outstanding, true), icon: ReceiptText, accent: "amber" as const },
@@ -1047,6 +952,9 @@ function CombinedOverview({
           onToggle={onTogglePeriodFilter}
           onClear={onClearPeriodFilter}
         />
+        {selectedPeriodCount > 0 ? (
+          <span className="text-xs font-semibold text-[#ffd166]">{selectedPeriodCount} bulan aktif</span>
+        ) : null}
       </div>
 
       <div className="grid gap-2.5 p-2.5 xl:grid-cols-4">
@@ -1059,15 +967,15 @@ function CombinedOverview({
         <DonutChart
           title="Invoice Aging by Bucket"
           items={invoiceSection.statusMix}
-          centerValue={formatPercent(invoiceBucket4)}
-          centerLabel="Bucket 4 >365"
+          centerLabel="Invoice Aging"
+          summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
           compact
         />
         <DonutChart
           title="Payment Risk Composition"
           items={paymentSection.statusMix}
-          centerValue={formatPercent(currentPayment)}
-          centerLabel="Current"
+          centerLabel="Payment Risk"
+          summary={`Current: ${formatPercent(currentPayment)}`}
           compact
         />
         <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
@@ -1148,22 +1056,22 @@ function ReportFrame({
 
   return (
     <section id={id} data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex min-h-11 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center">
-        <h2 className="text-lg font-black uppercase tracking-wide text-white md:text-2xl">
-          {title} <span className="text-[#ffd166]">|</span> <span className="text-sm text-[#ffd166] md:text-lg">Section Non Cemen</span>
+      <div className="flex min-h-14 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 text-center">
+        <h2 className="text-xl font-black uppercase tracking-wide text-white md:text-3xl">
+          {title} <span className="text-[#ffd166]">|</span> <span className="text-base text-[#ffd166] md:text-xl">Commercial Finance 2 - Section Non Cemen</span>
         </h2>
       </div>
 
-      <div className={cn("grid gap-2.5 p-2.5", isInvoice ? "xl:grid-cols-5" : "xl:grid-cols-4")}>
+      <div className={cn("grid gap-3 p-3", isInvoice ? "xl:grid-cols-5" : "xl:grid-cols-4")}>
         {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
+          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} />
         ))}
       </div>
 
-      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-[1.25fr_1.3fr_1.3fr_0.8fr]" : "xl:grid-cols-[1.1fr_0.9fr_1.1fr_0.95fr]")}>
+      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[1.25fr_1.3fr_1.3fr_0.8fr]" : "xl:grid-cols-[1.1fr_0.9fr_1.1fr_0.95fr]")}>
         <div className="grid gap-3">
           <FilterPanel
-            title="Customer Type"
+            title={isInvoice ? "Cust. Typ" : "Custo. Typ"}
             items={customerTypes}
             columns={2}
             selected={filters.customerType}
@@ -1171,7 +1079,7 @@ function ReportFrame({
             onClear={() => onClearFilter("customerType")}
           />
           <FilterPanel
-            title="Customer Name"
+            title={isInvoice ? "Cust. Name" : "Cust.Name"}
             items={customerNames}
             selected={filters.customerName}
             onToggle={(value) => onToggleFilter("customerName", value)}
@@ -1210,7 +1118,7 @@ function ReportFrame({
 
         <div className="grid gap-3">
           <FilterPanel
-            title="Invoice Type"
+            title="Invoice Typ"
             items={invoiceTypes}
             selected={filters.invoiceType}
             onToggle={(value) => onToggleFilter("invoiceType", value)}
@@ -1219,29 +1127,31 @@ function ReportFrame({
         </div>
 
         {isInvoice ? (
-          <DonutChart title="Aging by Bucket" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Bucket 4 >365" compact />
+          <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" />
         ) : (
           <StatusBars title="Payment Aging by Risk" items={activeSection.statusMix} />
         )}
       </div>
 
-      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-[1fr_1fr]" : "xl:grid-cols-[1fr_0.9fr]")}>
+      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[0.9fr_1fr_1.25fr]" : "xl:grid-cols-[1fr_0.9fr]")}>
         {isInvoice ? (
           <>
-            <HorizontalBars title="Top Customers" items={activeSection.topCustomers} maxItems={6} showValue={false} />
-            <DonutChart title="By Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" compact />
+            <HorizontalBars title="Top Customers by Outstanding" items={activeSection.topCustomers} maxItems={8} showValue={false} />
+            <DonutChart title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" />
+            <StatusBars title="Outstanding Aging by Bucket" items={activeSection.statusMix} />
           </>
         ) : (
           <>
-            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerValue={formatPercent(primaryShare)} centerLabel="Current" compact />
+            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} />
             <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} />
           </>
         )}
       </div>
 
-      <div className={cn("grid gap-2.5 p-2.5 pt-0", isInvoice ? "xl:grid-cols-1" : "xl:grid-cols-[1fr_1fr]")}>
-        <LineTrend title={isInvoice ? "Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
-        {!isInvoice ? <DonutChart title="Payment by Customer Type" items={activeSection.customerTypes} centerLabel="Type" compact /> : null}
+      <div className={cn("grid gap-3 p-3 pt-0", isInvoice ? "xl:grid-cols-[0.7fr_1.55fr]" : "xl:grid-cols-[1fr_1fr]")}>
+        {isInvoice ? <HorizontalBars title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} maxItems={8} showValue={false} /> : null}
+        <LineTrend title={isInvoice ? "Outstanding Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
+        {!isInvoice ? <DonutChart title="Payment by Customer Type" items={activeSection.customerTypes} centerLabel="Type" /> : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#07111f] px-3 py-2 text-xs font-semibold text-slate-400">
@@ -1258,6 +1168,7 @@ function ReportFrame({
 function UploadCard({
   role,
   title,
+  description,
   isLoading,
   loaded,
   error,
@@ -1266,7 +1177,7 @@ function UploadCard({
 }: {
   role: WorkbookRole;
   title: string;
-  description?: string;
+  description: string;
   isLoading: boolean;
   loaded?: LoadedReport;
   error?: string;
@@ -1287,13 +1198,10 @@ function UploadCard({
         onDrop(event.dataTransfer.files);
       }}
     >
-      <CardHeader className="p-3.5 pb-0">
-        <div className="flex items-center gap-3">
-          <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", accent)}>
-            <Icon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base text-white">{title}</CardTitle>
+      <CardHeader className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className={cn("grid h-12 w-12 place-items-center rounded-lg border", accent)}>
+            <Icon className="h-6 w-6" />
           </div>
           {loaded ? (
             <Badge className="border border-[#70f0bf]/25 bg-[#70f0bf]/10 text-[#70f0bf]">
@@ -1302,22 +1210,24 @@ function UploadCard({
             </Badge>
           ) : null}
         </div>
+        <CardTitle className="text-2xl text-white">{title}</CardTitle>
+        <CardDescription className="leading-6">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2.5 p-3.5">
-        <div className="flex items-center gap-2.5">
-          <Button type="button" size="sm" onClick={onPick} disabled={isLoading} className="shrink-0 rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            {isLoading ? "Processing" : `Upload ${role === "invoice" ? "Invoice" : "Payment"}`}
-          </Button>
-          {!loaded ? <span className="min-w-0 flex-1 truncate text-xs text-slate-500">Drop file .xlsx di sini</span> : null}
-        </div>
+      <CardContent className="space-y-4 p-5 pt-0">
+        <Button type="button" onClick={onPick} disabled={isLoading} className="w-full rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+          {isLoading ? "Processing" : `Upload ${role === "invoice" ? "Invoice" : "Payment"}`}
+        </Button>
         {loaded ? (
-          <div className="rounded-lg border border-white/10 bg-[#07111f] p-2.5 text-xs">
+          <div className="rounded-lg border border-white/10 bg-[#07111f] p-3 text-sm">
             <p className="truncate font-medium text-white">{compactFileName(loaded.file.name)}</p>
-            <p className="mt-1 text-slate-500">{formatNumber(loaded.file.rowCount)} rows - {formatCurrency(loaded.file.totalAmount, true)}{loaded.id ? ` - DB #${loaded.id}` : ""}</p>
+            <p className="mt-1 text-slate-500">{formatNumber(loaded.file.rowCount)} rows - {formatCurrency(loaded.file.totalAmount, true)}</p>
+            {loaded.id ? <p className="mt-1 text-xs text-[#70f0bf]">Database upload #{loaded.id}</p> : null}
           </div>
-        ) : null}
-        {error ? <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-2.5 text-xs text-[#ffb4a6]">{error}</p> : null}
+        ) : (
+          <div className="rounded-lg border border-dashed border-white/15 bg-[#07111f] p-4 text-center text-sm text-slate-500">Drop file .xlsx di sini</div>
+        )}
+        {error ? <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-3 text-sm text-[#ffb4a6]">{error}</p> : null}
       </CardContent>
     </Card>
   );
@@ -1609,7 +1519,6 @@ export default function DashboardPage({
                 </div>
                 <div className="min-w-0">
                   <h1 className="truncate text-lg font-semibold tracking-tight text-white">Commercial Finance 2</h1>
-                  <p className="truncate text-xs uppercase tracking-[0.18em] text-slate-500">Commercial Finance</p>
                 </div>
               </div>
               <Button
@@ -1674,7 +1583,6 @@ export default function DashboardPage({
             </div>
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-white">Commercial Finance 2</h1>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Commercial Finance</p>
             </div>
           </div>
 
