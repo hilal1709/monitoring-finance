@@ -56,6 +56,25 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Native select popups ignore app theme unless color-scheme is set; without it,
+   options inherit light --app-fg text onto the OS white dropdown surface. */
+select {
+  color-scheme: inherit;
+}
+
+select option {
+  background-color: var(--surface);
+  color: var(--app-fg);
+}
+
 :root[data-theme="light"] .bg-\[\#07111f\] {
   background-color: #eef2f8;
 }

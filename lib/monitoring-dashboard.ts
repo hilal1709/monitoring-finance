@@ -12,6 +12,13 @@ import type {
   UploadedWorkbookSummary,
   WorkbookRole,
 } from "@/lib/monitoring-dashboard-types";
+import type { ExportRecord } from "@/lib/export-dashboard-types";
+
+export type Period = {
+  key: string;
+  label: string;
+  sort: number;
+};
 
 type CellValue = string | number | boolean | null;
 
@@ -29,13 +36,7 @@ type UploadedWorkbookInput = {
   buffer: Buffer;
 };
 
-type Period = {
-  key: string;
-  label: string;
-  sort: number;
-};
-
-type BaseRecord = {
+export type BaseRecord = {
   amount: number;
   customerName: string;
   customerType: string;
@@ -44,11 +45,11 @@ type BaseRecord = {
   period: Period | null;
 };
 
-type InvoiceRecord = BaseRecord & {
+export type InvoiceRecord = BaseRecord & {
   documentNumber: string;
 };
 
-type PaymentRecord = BaseRecord & {
+export type PaymentRecord = BaseRecord & {
   paymentDocument: string;
   riskStatus: string;
 };
@@ -226,7 +227,11 @@ function parseStyles(xml: string) {
   for (const xf of cellXfs.matchAll(/<xf\b([^>]*)\/?>/g)) {
     const attrs = parseAttributes(xf[1]);
     const numFmtId = Number(attrs.get("numFmtId"));
-    const customCode = customFormats.get(numFmtId)?.replace(/"[^"]*"|\\./g, "").toLowerCase() ?? "";
+    const customCode = customFormats
+      .get(numFmtId)
+      ?.replace(/"[^"]*"|\\./g, "")
+      .replace(/\[[^\]]+\]/g, "")
+      .toLowerCase() ?? "";
     const isCustomDate = /[dmyhs]/.test(customCode);
 
     if (BUILT_IN_DATE_FORMATS.has(numFmtId) || isCustomDate) {
@@ -630,7 +635,7 @@ function toDashboardRecord(record: BaseRecord): DashboardRecord {
   };
 }
 
-function buildSection(records: BaseRecord[], statusOrder: string[]): DashboardSection {
+export function buildSection(records: BaseRecord[], statusOrder: string[]): DashboardSection {
   const totalAmount = sum(records);
 
   return {
@@ -645,6 +650,50 @@ function buildSection(records: BaseRecord[], statusOrder: string[]): DashboardSe
     monthly: monthlySeries(records),
     records: records.map(toDashboardRecord),
   };
+}
+
+// Group parsed records by their period key. A workbook may contain many months
+// (the initial bulk upload) or a single month (the monthly refresh). Either way
+// we persist each period as its own upsertable unit.
+export function groupByPeriod<T extends BaseRecord>(records: T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+
+  for (const record of records) {
+    if (!record.period) {
+      continue;
+    }
+
+    const bucket = grouped.get(record.period.key) ?? [];
+    bucket.push(record);
+    grouped.set(record.period.key, bucket);
+  }
+
+  return grouped;
+}
+
+// Rebuild a DashboardSection from records coming back out of the database,
+// where the period is stored as already-flattened periodKey/label/sort fields
+// rather than a nested period object.
+export function buildSectionFromDbRecords(records: DashboardRecord[], statusOrder: string[]): DashboardSection {
+  const toBase = (record: DashboardRecord): BaseRecord => ({
+    amount: record.amount,
+    customerName: record.customerName,
+    customerType: record.customerType,
+    invoiceType: record.invoiceType,
+    status: record.status,
+    period:
+      record.periodKey && record.periodLabel && record.periodSort !== null
+        ? { key: record.periodKey, label: record.periodLabel, sort: record.periodSort }
+        : null,
+  });
+
+  return buildSection(records.map(toBase), statusOrder);
+}
+
+export function statusOrderByRole(role: WorkbookRole): string[] {
+  return role === "invoice"
+    ? ["Current", "Bucket 1", "Bucket 2", "Bucket 3", "Bucket 4"]
+    : ["No Risk", "Low Risk", "Warning", "Warning +", "High Risk", "High Risk +"];
 }
 
 function combinedMonthly(invoiceRecords: InvoiceRecord[], paymentRecords: PaymentRecord[]): MonthlyPoint[] {
@@ -689,6 +738,127 @@ function workbookSummary(role: WorkbookRole, name: string, sheetName: string, re
     rowCount: records.length,
     totalAmount: sum(records),
   };
+}
+
+// Extract raw records (with period) from an uploaded workbook, scoped to a role.
+// Used by the per-month upsert path so the store can persist records grouped by
+// their own period instead of as a single snapshot blob.
+export function parseRecordsFromWorkbook(file: UploadedWorkbookInput, role: WorkbookRole): BaseRecord[] {
+  const workbook = parseWorkbook(file.buffer);
+  const sheet = findSheet(workbook, TARGET_SHEETS[role]);
+
+  if (!sheet) {
+    throw new Error(
+      role === "invoice"
+        ? "Sheet Billing Detail tidak ditemukan di file yang diupload."
+        : "Sheet Detail Payment tidak ditemukan di file yang diupload.",
+    );
+  }
+
+  return role === "invoice" ? parseInvoiceRecords(sheet) : parsePaymentRecords(sheet);
+}
+
+function dateValue(value: CellValue | undefined) {
+  const text = toText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
+    const year = Number(text.slice(0, 4));
+    return year >= 2000 && year <= 2100 ? text.slice(0, 10) : null;
+  }
+
+  if (typeof value === "number" && value > 0 && value < 60000) {
+    const isoDate = excelSerialToIsoDate(value);
+    const year = Number(isoDate?.slice(0, 4));
+    return year >= 2000 && year <= 2100 ? isoDate : null;
+  }
+
+  return text;
+}
+
+function exportAgingBucket(arrearDays: number) {
+  if (arrearDays <= 0) return "Current";
+  if (arrearDays <= 45) return "1-45";
+  if (arrearDays <= 75) return "46-75";
+  if (arrearDays <= 90) return "76-90";
+  if (arrearDays <= 120) return "91-120";
+  return "> 120";
+}
+
+function exportPaymentStatus(value: CellValue | undefined) {
+  const status = toText(value).toLowerCase();
+
+  if (status === "paid") return "Paid";
+  if (status.includes("jatuh tempo")) return "Belum Jatuh Tempo";
+  return "Open";
+}
+
+export function parseExportRecordsFromWorkbook(file: UploadedWorkbookInput): ExportRecord[] {
+  const workbook = parseWorkbook(file.buffer);
+  const sheet = workbook.sheets.get("data ekspor");
+
+  if (!sheet) {
+    throw new Error("Sheet Data Ekspor tidak ditemukan di workbook.");
+  }
+
+  const header = findHeader(sheet.rows, ["Company Code", "Bulan", "Tahun", "Tonase (MT)", "Nilai (USD)"]);
+  const records: ExportRecord[] = [];
+
+  for (let rowIndex = header.rowIndex + 1; rowIndex < sheet.rows.length; rowIndex += 1) {
+    const row = sheet.rows[rowIndex] ?? [];
+    const period = parsePeriod(
+      getByAlias(row, header.indexByHeader, ["Bulan"]),
+      getByAlias(row, header.indexByHeader, ["Tahun"]),
+    );
+    const usdValue = toNumber(getByAlias(row, header.indexByHeader, ["Nilai (USD)"])) ?? 0;
+    const tonnage = toNumber(getByAlias(row, header.indexByHeader, ["Tonase (MT)"])) ?? 0;
+    const arrearDays = toNumber(getByAlias(row, header.indexByHeader, ["Arrear"])) ?? 0;
+    const paymentRate = toNumber(getByAlias(row, header.indexByHeader, ["Kurs Pembayaran"])) ?? 0;
+    const exchangeDifference = toNumber(getByAlias(row, header.indexByHeader, ["Selisih"])) ?? 0;
+    const parsedBillingRate = toNumber(getByAlias(row, header.indexByHeader, ["Kurs Bill Doc"])) ?? 0;
+    const billingRate = parsedBillingRate || (paymentRate && exchangeDifference ? paymentRate - exchangeDifference : 0);
+
+    if (!period || (usdValue === 0 && tonnage === 0)) {
+      continue;
+    }
+
+    records.push({
+      periodKey: period.key,
+      periodLabel: period.label,
+      periodSort: period.sort,
+      companyCode: toText(getByAlias(row, header.indexByHeader, ["Company Code"])) || "Unmapped",
+      soldToName: toText(getByAlias(row, header.indexByHeader, ["Sold To Name"])) || "Unmapped",
+      buyer: toText(getByAlias(row, header.indexByHeader, ["Buyer"])) || "Unmapped",
+      vesselName: toText(getByAlias(row, header.indexByHeader, ["Nama Kapal"])) || "Unmapped",
+      product: toText(getByAlias(row, header.indexByHeader, ["PRODUK"])) || "Unmapped",
+      destination: toText(getByAlias(row, header.indexByHeader, ["TUJUAN"])) || "Unmapped",
+      tonnage,
+      usdValue,
+      pebNumber: toText(getByAlias(row, header.indexByHeader, ["No. PEB"])),
+      documentDate: dateValue(getByAlias(row, header.indexByHeader, ["TGL Dokumen"])),
+      salesOrder: toText(getByAlias(row, header.indexByHeader, ["No. SO"])),
+      invoiceNumber: toText(getByAlias(row, header.indexByHeader, ["No. Invoice", "No Faktur/Inv"])),
+      paymentDate: dateValue(getByAlias(row, header.indexByHeader, ["TGL. Pembayaran"])),
+      paymentStatus: exportPaymentStatus(getByAlias(row, header.indexByHeader, ["Keterangan"])),
+      plannedPaymentDate: dateValue(getByAlias(row, header.indexByHeader, ["Rencana Bayar"])),
+      transferDate: dateValue(getByAlias(row, header.indexByHeader, ["TGL TRANFER", "TGL TRANSFER"])),
+      arrearDays,
+      agingBucket: exportAgingBucket(arrearDays),
+      billingRate,
+      paymentRate,
+      exchangeDifference,
+      exchangeImpact: toNumber(getByAlias(row, header.indexByHeader, ["Selisih x Tonase"])) ?? 0,
+    });
+  }
+
+  if (records.length === 0) {
+    throw new Error("Tidak ada record valid pada sheet Data Ekspor.");
+  }
+
+  return records;
 }
 
 export function buildMonitoringDashboardFromFiles(files: UploadedWorkbookInput[], expectedRole?: WorkbookRole): MonitoringDashboardData {
