@@ -44,12 +44,6 @@ export function CombinedOverview({
 
   return (
     <section id="overview-dashboard" data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex min-h-11 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 py-2 text-center">
-        <h2 className="text-lg font-black uppercase tracking-wide text-white md:text-2xl">
-          Overview Report Monitoring <span className="text-[#ffd166]">|</span> <span className="text-sm text-[#ffd166] md:text-lg">Invoice + Payment</span>
-        </h2>
-      </div>
-
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-[#07111f] p-2.5">
         <OverviewMonthDropdown
           items={availablePeriods.length > 0 ? availablePeriods : ["Jan 2025"]}

@@ -92,7 +92,7 @@ export default function DashboardPage({
   const isNonExportOverview = view === "overview";
   const activeUploadCards = activeRole ? uploadCards.filter((card) => card.role === activeRole) : uploadCards;
   const pageTitle = exportSection?.title
-    ?? (activeRole === "invoice" ? "Invoice Report Monitoring" : activeRole === "payment" ? "Payment Report Monitoring" : "Overview Dashboard");
+    ?? (activeRole === "invoice" ? "Invoice Report Monitoring" : activeRole === "payment" ? "Payment Report Monitoring" : "Overview Report Monitoring");
   const overviewReady = Boolean(reports.invoice && reports.payment);
 
   // Stagger-reveal the dashboard blocks whenever the view or its data changes.
