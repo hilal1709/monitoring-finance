@@ -530,9 +530,6 @@ export default function DashboardPage({
             <Menu className="h-4 w-4" />
           </Button>
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-              {exportSection ? "Export Performance Monitoring" : "AR Report Monitoring"}
-            </p>
             <h2 className="truncate text-xl font-semibold text-white md:text-2xl">{pageTitle}</h2>
           </div>
         </div>
