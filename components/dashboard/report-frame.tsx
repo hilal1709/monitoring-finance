@@ -69,10 +69,6 @@ export function ReportFrame({
 
   return (
     <section id={id} data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex min-h-10 items-center justify-center border-b border-white/10 bg-[#0c1724] px-4 py-1 text-center">
-        <h2 className="text-sm font-black uppercase tracking-wide text-[#ffd166] md:text-base">Section Non Cemen</h2>
-      </div>
-
       <div className={cn("grid gap-2 p-2 sm:grid-cols-2", isInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
         {kpis.map((item) => (
           <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
