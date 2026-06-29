@@ -33,7 +33,7 @@ export const navigationGroups = [
   },
   {
     id: "non-export",
-    label: "Non Ekspor",
+    label: "Non Semen",
     icon: Building2,
     items: [
       { label: "Overview", icon: LayoutDashboard, href: "/", view: "overview" },
