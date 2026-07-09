@@ -69,14 +69,7 @@ export function ReportFrame({
 
   return (
     <section id={id} data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className={cn("grid gap-2 p-2 sm:grid-cols-2", isInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
-        {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
-        ))}
-      </div>
-      {paymentSummary ? <PaymentMovementSummary summary={paymentSummary} /> : null}
-
-      <div className={cn("grid gap-2 p-2 pt-0", isInvoice ? "lg:grid-cols-[1.25fr_1.3fr_1.3fr_0.8fr]" : "lg:grid-cols-[1.1fr_0.9fr_1.1fr_0.95fr]")}>
+      <div className={cn("grid gap-2 p-2", isInvoice ? "lg:grid-cols-[1.25fr_1.3fr_1.3fr]" : "lg:grid-cols-[1.1fr_0.9fr_1.1fr]") }>
         <div className="grid content-start gap-2">
           <FilterPanel
             title={isInvoice ? "Cust. Typ" : "Custo. Typ"}
@@ -139,36 +132,42 @@ export function ReportFrame({
             compact
           />
         </div>
-
-        {isInvoice ? (
-          <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" compact />
-        ) : (
-          <StatusBars title="Payment Aging by Risk" items={activeSection.statusMix} />
-        )}
       </div>
 
-      <div className={cn("grid gap-2 p-2 pt-0", isInvoice ? "lg:grid-cols-2" : "lg:grid-cols-[1fr_0.9fr]")}>
+      <div className={cn("grid gap-2 px-2 pb-2", isInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4") }>
+        {kpis.map((item) => (
+          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
+        ))}
+      </div>
+
+      {paymentSummary ? <PaymentMovementSummary summary={paymentSummary} /> : null}
+
+      <div className="grid gap-2 px-2 pb-2 lg:grid-cols-3">
         {isInvoice ? (
           <>
+            <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" compact />
             <HorizontalBars title="Top Customers by Outstanding" items={activeSection.topCustomers} maxItems={6} />
             <DonutChart title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" compact />
           </>
         ) : (
           <>
-            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} compact />
+            <StatusBars title="Payment Aging by Risk" items={activeSection.statusMix} />
             <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} />
+            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} compact />
           </>
         )}
       </div>
 
-      <div className={cn("grid gap-2 p-2 pt-0", isInvoice ? "lg:grid-cols-1" : "lg:grid-cols-[1.15fr_0.9fr_1.15fr]")}>
+      <div className={cn("grid gap-2 px-2 pb-2", isInvoice ? "lg:grid-cols-1" : "lg:grid-cols-[1.15fr_0.9fr_1.15fr]") }>
         <LineTrend title={isInvoice ? "Outstanding Trend" : "Payment Trend"} points={trendPoints} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
         {!isInvoice ? <TargetAchievementChart points={targetPoints} /> : null}
         {!isInvoice ? <TargetVsRealizationChart points={targetPoints} /> : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#07111f] px-3 py-2 text-xs font-semibold text-slate-400">
-        <span>{compactFileName(file.name)} - {file.sheetName}</span>
+        <span>
+          {compactFileName(file.name)} - {file.sheetName}
+        </span>
         <span>
           {selectedCount > 0 ? `${selectedCount} filter aktif - ` : null}
           Generated {formatTimestamp(generatedAt)}
