@@ -16,6 +16,12 @@ export type ThemeMode = "dark" | "light";
 export type PeriodMode = "mom" | "yoy" | "ytd";
 export type TrendPoint = SectionMonthlyPoint & {
   valueLabel: string;
+  compareValue?: number | null;
+  compareLabel?: string | null;
+};
+export type TrendDelta = {
+  percent: number;
+  direction: "up" | "down" | "flat";
 };
 
 export type LoadedReport = {

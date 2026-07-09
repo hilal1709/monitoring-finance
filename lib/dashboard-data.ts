@@ -12,6 +12,7 @@ import type {
   LoadedReport,
   PeriodMode,
   ReportFilters,
+  TrendDelta,
   TrendPoint,
 } from "@/lib/dashboard-types";
 import { monthLabels, monthOrder, paymentTargetPenerimaan } from "@/lib/dashboard-constants";
@@ -248,23 +249,48 @@ export function periodTrendPoints(section: DashboardSection, periodMode: PeriodM
   const monthly = sectionMonthlyPoints(section);
 
   if (periodMode === "mom") {
-    return monthly.slice(-12).map((point) => ({ ...point, valueLabel: formatTrendValue(point.value, periodMode) }));
+    const byKey = new Map(monthly.map((point) => [point.key, point]));
+
+    return monthly.slice(-12).map((point) => {
+      const [year, month] = point.key.split("-");
+      const previous = byKey.get(`${Number(year) - 1}-${month}`);
+      const compareValue = previous ? previous.value : null;
+
+      return {
+        ...point,
+        valueLabel: formatTrendValue(point.value, periodMode),
+        compareValue,
+        compareLabel: compareValue != null ? formatTrendValue(compareValue, periodMode) : null,
+      };
+    });
   }
 
   if (periodMode === "ytd") {
     const latestYear = monthly.at(-1)?.key.slice(0, 4);
+    const previousYear = String(Number(latestYear) - 1);
+    const previousCumByMonth = new Map<string, number>();
+    let previousRunning = 0;
+
+    for (const point of monthly.filter((item) => item.key.startsWith(`${previousYear}-`))) {
+      previousRunning += point.value;
+      previousCumByMonth.set(point.key.slice(5), previousRunning);
+    }
+
     let running = 0;
 
     return monthly
       .filter((point) => point.key.startsWith(`${latestYear}-`))
       .map((point) => {
         running += point.value;
+        const compareValue = previousCumByMonth.get(point.key.slice(5)) ?? null;
 
         return {
           ...point,
           key: `ytd-${point.key}`,
           value: running,
           valueLabel: formatTrendValue(running, periodMode),
+          compareValue,
+          compareLabel: compareValue != null ? formatTrendValue(compareValue, periodMode) : null,
         };
       });
   }
@@ -272,7 +298,7 @@ export function periodTrendPoints(section: DashboardSection, periodMode: PeriodM
   const monthlyByKey = new Map(monthly.map((point) => [point.key, point]));
 
   return monthly
-    .map((point) => {
+    .map((point): TrendPoint | null => {
       const [year, month] = point.key.split("-");
       const previous = monthlyByKey.get(`${Number(year) - 1}-${month}`);
 
@@ -287,10 +313,39 @@ export function periodTrendPoints(section: DashboardSection, periodMode: PeriodM
         key: `yoy-${point.key}`,
         value,
         valueLabel: formatTrendValue(value, periodMode),
+        compareValue: 0,
+        compareLabel: formatTrendValue(0, periodMode),
       };
     })
     .filter((point): point is TrendPoint => Boolean(point))
     .slice(-12);
+}
+
+export function trendDelta(points: TrendPoint[], periodMode: PeriodMode): TrendDelta | null {
+  if (points.length === 0) {
+    return null;
+  }
+
+  const latest = points[points.length - 1];
+
+  // YoY points already carry the growth ratio as their value.
+  if (periodMode === "yoy") {
+    const percent = latest.value;
+    return { percent, direction: percent > 0.0005 ? "up" : percent < -0.0005 ? "down" : "flat" };
+  }
+
+  // MoM/YTD: compare the latest value against last year (when available),
+  // otherwise against the first visible point.
+  let base = latest.compareValue ?? null;
+  if (base == null || base === 0) {
+    base = points[0].value;
+  }
+  if (base == null || base === 0) {
+    return null;
+  }
+
+  const percent = (latest.value - base) / Math.abs(base);
+  return { percent, direction: percent > 0.0005 ? "up" : percent < -0.0005 ? "down" : "flat" };
 }
 
 export function paymentYearMonthTotals(records: DashboardRecord[]) {

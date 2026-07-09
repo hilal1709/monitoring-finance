@@ -54,6 +54,20 @@ function cacheMonths(months: Partial<Record<WorkbookRole, StoredMonth[]>>) {
   return dashboardMonthsCache;
 }
 
+async function readResponsePayload(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return { raw: raw.slice(0, 500) };
+  }
+}
+
 export default function DashboardPage({
   view = "overview",
   initialReports,
@@ -267,10 +281,14 @@ export default function DashboardPage({
 
       try {
         const response = await fetch(activeRole ? `/api/dashboard?role=${activeRole}` : "/api/dashboard");
-        const payload = await response.json();
+        const payload = await readResponsePayload(response);
+
+        if (!payload || typeof payload !== "object") {
+          throw new Error("Data upload tersimpan tidak bisa dimuat.");
+        }
 
         if (!response.ok) {
-          throw new Error(payload.error ?? "Data upload tersimpan tidak bisa dimuat.");
+          throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Data upload tersimpan tidak bisa dimuat.");
         }
 
         if (cancelled) {
@@ -327,7 +345,12 @@ export default function DashboardPage({
         method: "POST",
         body: formData,
       });
-      const payload = await response.json();
+      const payload = await readResponsePayload(response);
+
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Workbook tidak bisa diproses.");
+      }
+
       const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
       const months = (payload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
       const persistedReport = payload.persistedReport as PersistedDashboardReport | undefined;
@@ -336,7 +359,7 @@ export default function DashboardPage({
       const reportsFromApi = loadedReportsFromPersisted(storedReports);
 
       if (!response.ok || (!reportsFromApi[role] && !persistedReport && (!section || !fileSummary))) {
-        throw new Error(payload.error ?? "Workbook tidak bisa diproses.");
+        throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Workbook tidak bisa diproses.");
       }
 
       const loadedReport = reportsFromApi[role] ?? (persistedReport
@@ -388,10 +411,14 @@ export default function DashboardPage({
       const response = await fetch(`/api/dashboard?role=${role}&periodKey=${encodeURIComponent(month.periodKey)}`, {
         method: "DELETE",
       });
-      const payload = await response.json();
+      const payload = await readResponsePayload(response);
+
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Data bulan tidak bisa dihapus.");
+      }
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Data bulan tidak bisa dihapus.");
+        throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Data bulan tidak bisa dihapus.");
       }
 
       const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
