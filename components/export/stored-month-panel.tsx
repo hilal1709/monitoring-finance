@@ -32,10 +32,6 @@ export function ExportStoredMonthPanel({
       <div className="flex min-w-0 items-center gap-2">
         <Badge className="shrink-0 border-[#7dd3fc]/30 bg-[#7dd3fc]/10 text-[#7dd3fc]">Ekspor</Badge>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Data Bulanan</p>
-          <p className="truncate text-xs font-semibold text-[var(--app-fg)]">
-            {months.length} bulan - {totalRows.toLocaleString("id-ID")} rows - {formatUsd(totalUsd)}
-          </p>
         </div>
       </div>
 
