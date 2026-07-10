@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatUsd } from "@/lib/export-dashboard-format";
 import type { ExportStoredMonth } from "@/lib/export-dashboard-types";
 
 export function ExportStoredMonthPanel({
@@ -22,8 +21,6 @@ export function ExportStoredMonthPanel({
     return null;
   }
 
-  const totalRows = months.reduce((sum, month) => sum + month.rowCount, 0);
-  const totalUsd = months.reduce((sum, month) => sum + month.totalUsd, 0);
   const selectedMonth = months.find((month) => month.periodKey === selectedPeriodKey) ?? months[0];
   const isDeleting = deletingKey === selectedMonth.periodKey;
 
@@ -32,6 +29,7 @@ export function ExportStoredMonthPanel({
       <div className="flex min-w-0 items-center gap-2">
         <Badge className="shrink-0 border-[#7dd3fc]/30 bg-[#7dd3fc]/10 text-[#7dd3fc]">Ekspor</Badge>
         <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Data Bulanan</p>
         </div>
       </div>
 
@@ -44,7 +42,7 @@ export function ExportStoredMonthPanel({
         >
           {months.map((month) => (
             <option key={month.periodKey} value={month.periodKey}>
-              {month.label} - {month.rowCount.toLocaleString("id-ID")} rows - {formatUsd(month.totalUsd)}
+              {month.label}
             </option>
           ))}
         </select>
