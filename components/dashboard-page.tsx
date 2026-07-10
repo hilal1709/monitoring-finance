@@ -357,38 +357,49 @@ export default function DashboardPage({
         throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Workbook tidak bisa diproses.");
       }
 
-      const refreshResponse = await fetch(`/api/dashboard?role=${role}`);
-      const refreshPayload = await readResponsePayload(refreshResponse);
-
-      if (!refreshPayload || typeof refreshPayload !== "object") {
-        throw new Error("Dashboard setelah upload tidak bisa dimuat.");
-      }
-
-      if (!refreshResponse.ok) {
-        throw new Error((refreshPayload.error as string | undefined) ?? (refreshPayload.raw as string | undefined) ?? "Dashboard setelah upload tidak bisa dimuat.");
-      }
-
-      const storedReports = (refreshPayload.reports ?? {}) as PersistedDashboardReports;
-      const months = (refreshPayload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
-      const reportsFromApi = loadedReportsFromPersisted(storedReports);
-      const loadedReport = reportsFromApi[role];
-
-      if (!loadedReport) {
-        throw new Error("Dashboard setelah upload tidak bisa dimuat.");
-      }
-
-      cacheReports({ [role]: loadedReport });
-      setReports((current) => ({
-        ...current,
-        [role]: loadedReport,
-      }));
-      setStoredMonths({ ...cacheMonths(months) });
-      clearFilters(role);
-      setOverviewFilters({ periodLabels: [] });
       setSuccessMessages((current) => ({
         ...current,
         [role]: `Upload ${role === "invoice" ? "Invoice" : "Payment"} berhasil.`,
       }));
+
+      void (async () => {
+        try {
+          const refreshResponse = await fetch(`/api/dashboard?role=${role}`);
+          const refreshPayload = await readResponsePayload(refreshResponse);
+
+          if (!refreshPayload || typeof refreshPayload !== "object") {
+            throw new Error("Dashboard setelah upload tidak bisa dimuat.");
+          }
+
+          if (!refreshResponse.ok) {
+            throw new Error((refreshPayload.error as string | undefined) ?? (refreshPayload.raw as string | undefined) ?? "Dashboard setelah upload tidak bisa dimuat.");
+          }
+
+          const storedReports = (refreshPayload.reports ?? {}) as PersistedDashboardReports;
+          const months = (refreshPayload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
+          const reportsFromApi = loadedReportsFromPersisted(storedReports);
+          const loadedReport = reportsFromApi[role];
+
+          if (!loadedReport) {
+            throw new Error("Dashboard setelah upload tidak bisa dimuat.");
+          }
+
+          cacheReports({ [role]: loadedReport });
+          setReports((current) => ({
+            ...current,
+            [role]: loadedReport,
+          }));
+          setStoredMonths({ ...cacheMonths(months) });
+          clearFilters(role);
+          setOverviewFilters({ periodLabels: [] });
+        } catch (error) {
+          setSuccessMessages((current) => ({ ...current, [role]: undefined }));
+          setErrors((current) => ({
+            ...current,
+            [role]: error instanceof Error ? error.message : "Dashboard setelah upload tidak bisa dimuat.",
+          }));
+        }
+      })();
     } catch (error) {
       setSuccessMessages((current) => ({ ...current, [role]: undefined }));
       setErrors((current) => ({

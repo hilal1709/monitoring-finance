@@ -528,12 +528,12 @@ export async function saveDashboardUploadByMonth(
     throw new Error("Record di workbook tidak memiliki periode (bulan/tahun) atau tanggal yang bisa dibaca.");
   }
 
-  const upserted: { periodKey: string; rowCount: number }[] = [];
-
-  for (const [periodKey, periodRecords] of byPeriod) {
-    const result = await upsertMonthRecords(role, periodKey, periodRecords, file.name);
-    upserted.push({ periodKey, rowCount: result.rowCount });
-  }
+  const upserted = await Promise.all(
+    [...byPeriod.entries()].map(async ([periodKey, periodRecords]) => {
+      const result = await upsertMonthRecords(role, periodKey, periodRecords, file.name);
+      return { periodKey, rowCount: result.rowCount };
+    }),
+  );
 
   return { upsertedMonths: upserted };
 }
