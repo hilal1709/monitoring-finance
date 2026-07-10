@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Building2, Download, Loader2, Menu, MoonStar, PanelLeftClose, PanelLeftOpen, SunMedium, UploadCloud, X } from "lucide-react";
+import { Building2, CheckCircle2, Download, Loader2, Menu, MoonStar, PanelLeftClose, PanelLeftOpen, SunMedium, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,7 @@ export default function DashboardPage({
   });
   const [storedMonths, setStoredMonths] = useState<Partial<Record<WorkbookRole, StoredMonth[]>>>(() => ({ ...dashboardMonthsCache }));
   const [errors, setErrors] = useState<Partial<Record<WorkbookRole, string>>>({});
+  const [successMessages, setSuccessMessages] = useState<Partial<Record<WorkbookRole, string>>>({});
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
@@ -335,6 +336,7 @@ export default function DashboardPage({
 
     setLoadingRole(role);
     setErrors((current) => ({ ...current, [role]: undefined }));
+    setSuccessMessages((current) => ({ ...current, [role]: undefined }));
 
     try {
       const formData = new FormData();
@@ -383,7 +385,12 @@ export default function DashboardPage({
       setStoredMonths({ ...cacheMonths(months) });
       clearFilters(role);
       setOverviewFilters({ periodLabels: [] });
+      setSuccessMessages((current) => ({
+        ...current,
+        [role]: `Upload ${role === "invoice" ? "Invoice" : "Payment"} berhasil.`,
+      }));
     } catch (error) {
+      setSuccessMessages((current) => ({ ...current, [role]: undefined }));
       setErrors((current) => ({
         ...current,
         [role]: error instanceof Error ? error.message : "Workbook tidak bisa diproses.",
@@ -411,6 +418,7 @@ export default function DashboardPage({
     const key = `${role}:${month.periodKey}`;
     setDeletingMonthKey(key);
     setErrors((current) => ({ ...current, [role]: undefined }));
+    setSuccessMessages((current) => ({ ...current, [role]: undefined }));
 
     try {
       const response = await fetch(`/api/dashboard?role=${role}&periodKey=${encodeURIComponent(month.periodKey)}`, {
@@ -627,6 +635,13 @@ export default function DashboardPage({
 
           {activeRole && reports[activeRole] && errors[activeRole] ? (
             <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-3 text-sm text-[#ffb4a6]">{errors[activeRole]}</p>
+          ) : null}
+
+          {activeRole && reports[activeRole] && successMessages[activeRole] ? (
+            <p className="flex items-center gap-2 rounded-lg border border-[#70f0bf]/25 bg-[#70f0bf]/10 p-3 text-sm text-[#70f0bf]">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {successMessages[activeRole]}
+            </p>
           ) : null}
 
           {isLoadingStoredReports ? (
