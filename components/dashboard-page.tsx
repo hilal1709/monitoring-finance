@@ -351,24 +351,29 @@ export default function DashboardPage({
         throw new Error("Workbook tidak bisa diproses.");
       }
 
-      const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
-      const months = (payload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
-      const persistedReport = payload.persistedReport as PersistedDashboardReport | undefined;
-      const section = payload[role] as DashboardSection | undefined;
-      const fileSummary = (payload.files as UploadedWorkbookSummary[] | undefined)?.find((item) => item.role === role);
-      const reportsFromApi = loadedReportsFromPersisted(storedReports);
-
-      if (!response.ok || (!reportsFromApi[role] && !persistedReport && (!section || !fileSummary))) {
+      if (!response.ok) {
         throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Workbook tidak bisa diproses.");
       }
 
-      const loadedReport = reportsFromApi[role] ?? (persistedReport
-        ? fromPersistedReport(persistedReport)
-        : {
-            generatedAt: payload.generatedAt,
-            file: fileSummary as UploadedWorkbookSummary,
-            section: section as DashboardSection,
-          });
+      const refreshResponse = await fetch(`/api/dashboard?role=${role}`);
+      const refreshPayload = await readResponsePayload(refreshResponse);
+
+      if (!refreshPayload || typeof refreshPayload !== "object") {
+        throw new Error("Dashboard setelah upload tidak bisa dimuat.");
+      }
+
+      if (!refreshResponse.ok) {
+        throw new Error((refreshPayload.error as string | undefined) ?? (refreshPayload.raw as string | undefined) ?? "Dashboard setelah upload tidak bisa dimuat.");
+      }
+
+      const storedReports = (refreshPayload.reports ?? {}) as PersistedDashboardReports;
+      const months = (refreshPayload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
+      const reportsFromApi = loadedReportsFromPersisted(storedReports);
+      const loadedReport = reportsFromApi[role];
+
+      if (!loadedReport) {
+        throw new Error("Dashboard setelah upload tidak bisa dimuat.");
+      }
 
       cacheReports({ [role]: loadedReport });
       setReports((current) => ({

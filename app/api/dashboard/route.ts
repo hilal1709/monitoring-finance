@@ -62,23 +62,7 @@ export async function POST(request: Request) {
       upsertedMonths.push(...result.upsertedMonths);
     }
 
-    const dashboard = await getAllDashboardReports(role);
-    const persistedReport = dashboard.reports[role];
-
-    if (!persistedReport) {
-      return Response.json(
-        { error: "Workbook berhasil diproses, tapi dashboard bulanan belum bisa dibuat." },
-        { status: 400 },
-      );
-    }
-
     return Response.json({
-      generatedAt: persistedReport.generatedAt,
-      files: [persistedReport.file],
-      [role]: persistedReport.section,
-      persistedReport,
-      reports: dashboard.reports,
-      months: dashboard.months,
       upsertedMonths,
     });
   } catch (error) {
