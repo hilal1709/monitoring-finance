@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatNumber } from "@/lib/dashboard-format";
 import type { StoredMonth } from "@/lib/dashboard-types";
 import type { WorkbookRole } from "@/lib/monitoring-dashboard-types";
 
@@ -25,7 +24,6 @@ export function StoredMonthPanel({
     return null;
   }
 
-  const totalRows = months.reduce((sum, month) => sum + month.rowCount, 0);
   const selectedMonth = months.find((month) => month.periodKey === selectedPeriodKey) ?? months[0];
   const isDeleting = deletingKey === `${role}:${selectedMonth.periodKey}`;
 
@@ -35,12 +33,6 @@ export function StoredMonthPanel({
         <Badge className="shrink-0 border-[#ffd166]/30 bg-[#ffd166]/10 text-[#ffd166]">
           {role === "invoice" ? "Invoice" : "Payment"}
         </Badge>
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Data Bulanan</p>
-          <p className="truncate text-xs font-semibold text-[var(--app-fg)]">
-            {months.length} bulan - {formatNumber(totalRows)} rows - {formatCurrency(months.reduce((sum, month) => sum + month.totalAmount, 0), true)}
-          </p>
-        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -52,7 +44,7 @@ export function StoredMonthPanel({
         >
           {months.map((month) => (
             <option key={month.periodKey} value={month.periodKey}>
-              {month.label} - {formatNumber(month.rowCount)} rows - {formatCurrency(month.totalAmount, true)}
+              {month.label}
             </option>
           ))}
         </select>
