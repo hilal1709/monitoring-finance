@@ -487,6 +487,18 @@ function parseDateValueAsPeriod(value: CellValue | undefined): Period | null {
   return null;
 }
 
+function parsePeriodFromAliases(row: CellValue[], indexByHeader: Map<string, number>, aliases: string[]) {
+  for (const alias of aliases) {
+    const period = parseDateValueAsPeriod(getByAlias(row, indexByHeader, [alias]));
+
+    if (period) {
+      return period;
+    }
+  }
+
+  return null;
+}
+
 function parseInvoiceRecords(sheet: ParsedSheet) {
   const header = findHeader(sheet.rows, ["Cust. Name", "Doc. Number", "Amount in local currency", "Bucket"]);
   const records: InvoiceRecord[] = [];
@@ -542,10 +554,11 @@ function parsePaymentRecords(sheet: ParsedSheet) {
       customerType: toText(getByAlias(row, header.indexByHeader, ["Custo. Typ", "Cust. Typ"])) || "Unmapped",
       invoiceType: toText(getByAlias(row, header.indexByHeader, ["Invoice Typ"])) || "Unmapped",
       status: riskStatus,
-      period: parsePeriod(
-        getByAlias(row, header.indexByHeader, ["Month"]),
-        getByAlias(row, header.indexByHeader, ["Year"]),
-      ),
+      period:
+        parsePeriod(
+          getByAlias(row, header.indexByHeader, ["Month", "Bulan"]),
+          getByAlias(row, header.indexByHeader, ["Year", "Tahun"]),
+        ) ?? parsePeriodFromAliases(row, header.indexByHeader, ["Payment Date", "Tanggal Payment", "Tanggal Bayar", "Date"]),
     });
   }
 

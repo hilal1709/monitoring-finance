@@ -525,7 +525,7 @@ export async function saveDashboardUploadByMonth(
   const byPeriod = groupByPeriod(records);
 
   if (byPeriod.size === 0) {
-    throw new Error("Record di workbook tidak memiliki periode (bulan/tahun) yang bisa dibaca.");
+    throw new Error("Record di workbook tidak memiliki periode (bulan/tahun) atau tanggal yang bisa dibaca.");
   }
 
   const upserted: { periodKey: string; rowCount: number }[] = [];
