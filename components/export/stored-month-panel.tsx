@@ -28,9 +28,6 @@ export function ExportStoredMonthPanel({
     <section data-animate-card className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--soft-shadow)] lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-center gap-2">
         <Badge className="shrink-0 border-[#7dd3fc]/30 bg-[#7dd3fc]/10 text-[#7dd3fc]">Ekspor</Badge>
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Data Bulanan</p>
-        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
