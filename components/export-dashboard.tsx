@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useRevealAnimation } from "@/lib/use-reveal-animation";
 import { ExportStoredMonthPanel } from "@/components/export/stored-month-panel";
 import { ExportToolbar } from "@/components/export/toolbar";
+import { ExportUploadProgress, ExportUploadSuccess } from "@/components/export/upload-feedback";
 import { ExportUploadState } from "@/components/export/upload-state";
 import { DemurrageView } from "@/components/export/views/demurrage-view";
 import { DestinationsView } from "@/components/export/views/destinations-view";
@@ -12,6 +13,7 @@ import { ForecastView } from "@/components/export/views/forecast-view";
 import { OverviewView } from "@/components/export/views/overview-view";
 import { RkapView } from "@/components/export/views/rkap-view";
 import { TrendView } from "@/components/export/views/trend-view";
+import { formatExportUploadSuccess } from "@/lib/export-dashboard-format";
 import type { ExportDashboardPayload, ExportDashboardView, ExportStoredMonth } from "@/lib/export-dashboard-types";
 
 let exportDashboardCache: ExportDashboardPayload | null = null;
@@ -24,8 +26,15 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
   const [uploading, setUploading] = useState(false);
   const [deletingMonthKey, setDeletingMonthKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState("all");
   const [selectedCompany, setSelectedCompany] = useState("all");
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = window.setTimeout(() => setSuccessMessage(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [successMessage]);
 
   useEffect(() => {
     if (exportDashboardCache) return;
@@ -54,6 +63,7 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
     if (!file) return;
     setUploading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const formData = new FormData();
@@ -65,6 +75,7 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
       setData(exportDashboardCache);
       setSelectedPeriod("all");
       setSelectedCompany("all");
+      setSuccessMessage(formatExportUploadSuccess(file.name, payload.upsertedMonths));
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Workbook Ekspor tidak bisa diproses.");
     } finally {
@@ -127,9 +138,17 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
     <>
       <input ref={inputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(event) => void upload(event.target.files)} />
       {!data || data.records.length === 0 ? (
-        <ExportUploadState uploading={uploading} error={error} onPick={() => inputRef.current?.click()} onDrop={(files) => void upload(files)} />
+        <ExportUploadState
+          uploading={uploading}
+          error={error}
+          successMessage={successMessage}
+          onPick={() => inputRef.current?.click()}
+          onDrop={(files) => void upload(files)}
+        />
       ) : (
         <div ref={revealRef} className="space-y-2">
+          {uploading ? <ExportUploadProgress /> : null}
+          {!uploading && successMessage ? <ExportUploadSuccess message={successMessage} /> : null}
           <ExportToolbar
             data={data}
             selectedPeriod={selectedPeriod}

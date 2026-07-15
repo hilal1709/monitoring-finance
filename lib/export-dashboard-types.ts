@@ -57,6 +57,11 @@ export type ExportKpiSummary = {
   months: ExportKpiMonth[];
 };
 
+export type ExportUpsertedMonth = {
+  periodKey: string;
+  rowCount: number;
+};
+
 export type ExportDashboardPayload = {
   generatedAt: string | null;
   filename: string | null;
@@ -64,4 +69,5 @@ export type ExportDashboardPayload = {
   records: ExportRecord[];
   months: ExportStoredMonth[];
   kpi: ExportKpiSummary | null;
+  upsertedMonths?: ExportUpsertedMonth[];
 };

@@ -19,3 +19,31 @@ export function formatTonnage(value: number, compact = true) {
 export function formatIdr(value: number) {
   return `Rp ${formatCompact(value)}`;
 }
+
+const EXPORT_MONTH_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+export function formatExportPeriodLabel(periodKey: string) {
+  const [yearText, monthText] = periodKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+
+  return Number.isFinite(year) && month >= 1 && month <= 12
+    ? `${EXPORT_MONTH_NAMES[month]} ${year}`
+    : periodKey;
+}
+
+export function formatExportUploadSuccess(
+  filename: string,
+  upsertedMonths: { periodKey: string; rowCount: number }[] | undefined,
+) {
+  if (!upsertedMonths?.length) {
+    return `Upload "${filename}" berhasil.`;
+  }
+
+  const totalRows = upsertedMonths.reduce((sum, month) => sum + month.rowCount, 0);
+  const monthLabels = upsertedMonths
+    .map((month) => formatExportPeriodLabel(month.periodKey))
+    .join(", ");
+
+  return `Upload "${filename}" berhasil — ${totalRows.toLocaleString("id-ID")} baris untuk ${monthLabels}.`;
+}

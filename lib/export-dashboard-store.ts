@@ -75,24 +75,30 @@ async function getExportMetadata<T>(key: string) {
   return result.rows[0]?.value ?? null;
 }
 
-async function replaceExportMonth(periodKey: string, records: ExportRecord[], filename: string) {
+// Ganti seluruh bulan yang ada di upload dalam SATU transaksi/koneksi.
+// Sebelumnya per-bulan (satu workbook multi-tahun = puluhan transaksi berurutan)
+// sehingga upload terasa sangat lama di Postgres remote.
+async function replaceExportMonths(grouped: Map<string, ExportRecord[]>, filename: string) {
   const client = await getPostgresPool().connect();
 
   try {
     await client.query("begin");
-    await client.query(`delete from public.export_records where period_key = $1;`, [periodKey]);
 
-    for (let start = 0; start < records.length; start += INSERT_CHUNK_SIZE) {
-      const chunk = records.slice(start, start + INSERT_CHUNK_SIZE);
+    for (const [periodKey, records] of grouped) {
+      await client.query(`delete from public.export_records where period_key = $1;`, [periodKey]);
 
-      await client.query(
-        `
-          insert into public.export_records (period_key, source_filename, record_data)
-          select $1::text, $2::text, value
-          from unnest($3::jsonb[]) as value;
-        `,
-        [periodKey, filename, chunk.map((record) => JSON.stringify(record))],
-      );
+      for (let start = 0; start < records.length; start += INSERT_CHUNK_SIZE) {
+        const chunk = records.slice(start, start + INSERT_CHUNK_SIZE);
+
+        await client.query(
+          `
+            insert into public.export_records (period_key, source_filename, record_data)
+            select $1::text, $2::text, value
+            from unnest($3::jsonb[]) as value;
+          `,
+          [periodKey, filename, chunk.map((record) => JSON.stringify(record))],
+        );
+      }
     }
 
     await client.query("commit");
@@ -117,9 +123,7 @@ export async function saveExportUploadByMonth(file: { name: string; buffer: Buff
     grouped.set(record.periodKey, monthRecords);
   }
 
-  for (const [periodKey, monthRecords] of grouped) {
-    await replaceExportMonth(periodKey, monthRecords, file.name);
-  }
+  await replaceExportMonths(grouped, file.name);
 
   if (kpi) {
     await saveExportMetadata("kpi", kpi, file.name);

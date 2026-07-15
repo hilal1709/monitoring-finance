@@ -37,7 +37,7 @@ export function ExportToolbar({
       </select>
       <Button className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]" disabled={uploading} onClick={onUpload}>
         {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-        <span className="hidden sm:inline">Perbarui Data</span>
+        <span className="hidden sm:inline">{uploading ? "Menyimpan..." : "Perbarui Data"}</span>
       </Button>
     </section>
   );
