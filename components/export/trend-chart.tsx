@@ -1,12 +1,10 @@
-import type { MonthlyExportPoint } from "@/lib/export-dashboard-data";
-
-export function TrendChart({
+export function TrendChart<T extends Record<string, unknown>>({
   points,
   series,
   valueFormatter,
 }: {
-  points: MonthlyExportPoint[];
-  series: { key: keyof MonthlyExportPoint; label: string; color: string }[];
+  points: (T & { key: string; label: string })[];
+  series: { key: keyof T; label: string; color: string }[];
   valueFormatter: (value: number) => string;
 }) {
   const values = points.flatMap((point) => series.map((item) => Number(point[item.key])));

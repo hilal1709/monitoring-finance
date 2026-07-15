@@ -2,7 +2,6 @@ export type ExportDashboardView =
   | "export-overview"
   | "export-rkap"
   | "export-trend"
-  | "export-sig-group"
   | "export-destinations"
   | "export-forecast"
   | "export-demurrage";
@@ -44,10 +43,25 @@ export type ExportStoredMonth = {
   uploadedAt: string;
 };
 
+export type ExportKpiMonth = {
+  periodKey: string;
+  label: string;
+  salesTargetUsd: number;
+  salesActualUsd: number;
+  paymentTargetUsd: number;
+  paymentActualUsd: number;
+};
+
+export type ExportKpiSummary = {
+  sheetName: string;
+  months: ExportKpiMonth[];
+};
+
 export type ExportDashboardPayload = {
   generatedAt: string | null;
   filename: string | null;
   sheetName: string;
   records: ExportRecord[];
   months: ExportStoredMonth[];
+  kpi: ExportKpiSummary | null;
 };

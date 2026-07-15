@@ -12,7 +12,7 @@ import type {
   UploadedWorkbookSummary,
   WorkbookRole,
 } from "@/lib/monitoring-dashboard-types";
-import type { ExportRecord } from "@/lib/export-dashboard-types";
+import type { ExportKpiMonth, ExportKpiSummary, ExportRecord } from "@/lib/export-dashboard-types";
 
 export type Period = {
   key: string;
@@ -809,15 +809,106 @@ function exportPaymentStatus(value: CellValue | undefined) {
   return "Open";
 }
 
-export function parseExportRecordsFromWorkbook(file: UploadedWorkbookInput): ExportRecord[] {
-  const workbook = parseWorkbook(file.buffer);
-  const sheet = workbook.sheets.get("data ekspor");
+function parsePeriodFromMonthLabel(value: CellValue | undefined) {
+  const text = toText(value).toLowerCase();
+  const monthMatch = text.match(/[a-z]+/i)?.[0] ?? "";
+  const yearMatch = text.match(/\d{2,4}/)?.[0] ?? "";
+  const month = MONTH_LOOKUP.get(monthMatch) ?? MONTH_LOOKUP.get(monthMatch.slice(0, 3));
+  const parsedYear = Number(yearMatch.length === 2 ? `20${yearMatch}` : yearMatch);
 
-  if (!sheet) {
-    throw new Error("Sheet Data Ekspor tidak ditemukan di workbook.");
+  if (!month || !Number.isFinite(parsedYear)) {
+    return null;
   }
 
-  const header = findHeader(sheet.rows, ["Company Code", "Bulan", "Tahun", "Tonase (MT)", "Nilai (USD)"]);
+  return {
+    key: `${parsedYear}-${String(month).padStart(2, "0")}`,
+    label: `${MONTHS[month]} ${parsedYear}`,
+    sort: parsedYear * 100 + month,
+  };
+}
+
+function parseExportKpiSummary(workbook: ParsedWorkbook): ExportKpiSummary | null {
+  const sheet = workbook.sheets.get("kpi 2026");
+
+  if (!sheet) {
+    return null;
+  }
+
+  const headerRowIndex = sheet.rows.findIndex((row) => row.some((cell) => /jan\s*26/i.test(toText(cell))));
+
+  if (headerRowIndex < 0) {
+    return null;
+  }
+
+  const headerRow = sheet.rows[headerRowIndex] ?? [];
+  const monthColumns = headerRow
+    .map((cell, index) => ({ period: parsePeriodFromMonthLabel(cell), index }))
+    .filter((item): item is { period: Period; index: number } => Boolean(item.period));
+  const rowByName = new Map<string, CellValue[]>();
+
+  for (const row of sheet.rows.slice(headerRowIndex + 1)) {
+    const label = toText(row[0]).toLowerCase();
+
+    if (label) {
+      rowByName.set(label, row);
+    }
+  }
+
+  const salesTargetRow = rowByName.get("penjualan rkap") ?? rowByName.get("penjualan (rkap)");
+  const salesActualRow = rowByName.get("penjualan real") ?? rowByName.get("penjualan (real)");
+  const paymentTargetRow = rowByName.get("target penerimaan *") ?? rowByName.get("target penerimaan");
+  const paymentActualRow = rowByName.get("realisasi penerimaan");
+
+  if (!salesTargetRow && !salesActualRow && !paymentTargetRow && !paymentActualRow) {
+    return null;
+  }
+
+  return {
+    sheetName: sheet.name,
+    months: monthColumns
+      .map(({ period, index }) => ({
+        periodKey: period.key,
+        label: period.label,
+        salesTargetUsd: (toNumber(salesTargetRow?.[index]) ?? 0) * 1_000_000,
+        salesActualUsd: (toNumber(salesActualRow?.[index]) ?? 0) * 1_000_000,
+        paymentTargetUsd: (toNumber(paymentTargetRow?.[index]) ?? 0) * 1_000_000,
+        paymentActualUsd: (toNumber(paymentActualRow?.[index]) ?? 0) * 1_000_000,
+      }))
+      .filter((month) => month.salesTargetUsd || month.salesActualUsd || month.paymentTargetUsd || month.paymentActualUsd),
+  };
+}
+
+export function parseExportKpiSummaryFromWorkbook(file: UploadedWorkbookInput): ExportKpiSummary | null {
+  return parseExportKpiSummary(parseWorkbook(file.buffer));
+}
+
+function findExportSheet(workbook: ParsedWorkbook) {
+  const requiredHeaders = ["Company Code", "Bulan", "Tahun", "Tonase (MT)", "Nilai (USD)"];
+  const namedSheet = workbook.sheets.get("data ekspor") ?? workbook.sheets.get("data gab");
+
+  if (namedSheet) {
+    return { sheet: namedSheet, header: findHeader(namedSheet.rows, requiredHeaders) };
+  }
+
+  for (const sheet of workbook.sheets.values()) {
+    try {
+      return { sheet, header: findHeader(sheet.rows, requiredHeaders) };
+    } catch {
+      // Continue scanning other sheets; export workbooks may use different sheet names.
+    }
+  }
+
+  throw new Error("Sheet Data Ekspor/Data Gab dengan header ekspor lengkap tidak ditemukan di workbook.");
+}
+
+export function getExportDetailSheetNameFromWorkbook(file: UploadedWorkbookInput) {
+  const workbook = parseWorkbook(file.buffer);
+  return findExportSheet(workbook).sheet.name;
+}
+
+export function parseExportRecordsFromWorkbook(file: UploadedWorkbookInput): ExportRecord[] {
+  const workbook = parseWorkbook(file.buffer);
+  const { sheet, header } = findExportSheet(workbook);
   const records: ExportRecord[] = [];
 
   for (let rowIndex = header.rowIndex + 1; rowIndex < sheet.rows.length; rowIndex += 1) {

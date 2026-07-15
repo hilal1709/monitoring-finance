@@ -1,9 +1,10 @@
 import "server-only";
 
 import { getPostgresPool } from "@/lib/postgres";
-import { parseExportRecordsFromWorkbook } from "@/lib/monitoring-dashboard";
+import { getExportDetailSheetNameFromWorkbook, parseExportKpiSummaryFromWorkbook, parseExportRecordsFromWorkbook } from "@/lib/monitoring-dashboard";
 import type {
   ExportDashboardPayload,
+  ExportKpiSummary,
   ExportRecord,
   ExportStoredMonth,
 } from "@/lib/export-dashboard-types";
@@ -27,6 +28,13 @@ function ensureExportSchema() {
 
       create index if not exists export_records_uploaded_at_idx
         on public.export_records (uploaded_at desc);
+
+      create table if not exists public.export_dashboard_metadata (
+        key text primary key,
+        value jsonb not null,
+        source_filename text not null,
+        updated_at timestamptz not null default now()
+      );
     `)
     .then(() => undefined);
 
@@ -42,6 +50,29 @@ function monthLabelFromPeriodKey(periodKey: string) {
   return Number.isFinite(year) && month >= 1 && month <= 12
     ? `${monthNames[month]} ${year}`
     : periodKey;
+}
+
+async function saveExportMetadata(key: string, value: unknown, filename: string) {
+  await getPostgresPool().query(
+    `
+      insert into public.export_dashboard_metadata (key, value, source_filename, updated_at)
+      values ($1, $2::jsonb, $3, now())
+      on conflict (key) do update set
+        value = excluded.value,
+        source_filename = excluded.source_filename,
+        updated_at = excluded.updated_at;
+    `,
+    [key, JSON.stringify(value), filename],
+  );
+}
+
+async function getExportMetadata<T>(key: string) {
+  const result = await getPostgresPool().query<{ value: T }>(
+    `select value from public.export_dashboard_metadata where key = $1;`,
+    [key],
+  );
+
+  return result.rows[0]?.value ?? null;
 }
 
 async function replaceExportMonth(periodKey: string, records: ExportRecord[], filename: string) {
@@ -76,6 +107,8 @@ async function replaceExportMonth(periodKey: string, records: ExportRecord[], fi
 export async function saveExportUploadByMonth(file: { name: string; buffer: Buffer }) {
   await ensureExportSchema();
   const records = parseExportRecordsFromWorkbook(file);
+  const kpi = parseExportKpiSummaryFromWorkbook(file);
+  const detailSheetName = getExportDetailSheetNameFromWorkbook(file);
   const grouped = new Map<string, ExportRecord[]>();
 
   for (const record of records) {
@@ -87,6 +120,11 @@ export async function saveExportUploadByMonth(file: { name: string; buffer: Buff
   for (const [periodKey, monthRecords] of grouped) {
     await replaceExportMonth(periodKey, monthRecords, file.name);
   }
+
+  if (kpi) {
+    await saveExportMetadata("kpi", kpi, file.name);
+  }
+  await saveExportMetadata("detailSheetName", detailSheetName, file.name);
 
   return {
     upsertedMonths: [...grouped.entries()].map(([periodKey, monthRecords]) => ({
@@ -113,7 +151,7 @@ type ExportMonthRow = {
 export async function getExportDashboard(): Promise<ExportDashboardPayload> {
   await ensureExportSchema();
 
-  const [recordsResult, monthsResult] = await Promise.all([
+  const [recordsResult, monthsResult, kpi, detailSheetName] = await Promise.all([
     getPostgresPool().query<ExportRecordRow>(
       `
         select source_filename, record_data, uploaded_at::text
@@ -134,6 +172,8 @@ export async function getExportDashboard(): Promise<ExportDashboardPayload> {
         order by period_key desc;
       `,
     ),
+    getExportMetadata<ExportKpiSummary>("kpi"),
+    getExportMetadata<string>("detailSheetName"),
   ]);
 
   const latestRow = [...recordsResult.rows].sort(
@@ -151,9 +191,10 @@ export async function getExportDashboard(): Promise<ExportDashboardPayload> {
   return {
     generatedAt: latestRow?.uploaded_at ?? null,
     filename: latestRow?.source_filename ?? null,
-    sheetName: "Data Ekspor",
+    sheetName: detailSheetName ?? "Data Ekspor",
     records: recordsResult.rows.map((row) => row.record_data),
     months,
+    kpi,
   };
 }
 

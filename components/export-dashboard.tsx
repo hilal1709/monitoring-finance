@@ -11,7 +11,6 @@ import { DestinationsView } from "@/components/export/views/destinations-view";
 import { ForecastView } from "@/components/export/views/forecast-view";
 import { OverviewView } from "@/components/export/views/overview-view";
 import { RkapView } from "@/components/export/views/rkap-view";
-import { SigGroupView } from "@/components/export/views/sig-group-view";
 import { TrendView } from "@/components/export/views/trend-view";
 import type { ExportDashboardPayload, ExportDashboardView, ExportStoredMonth } from "@/lib/export-dashboard-types";
 
@@ -100,7 +99,7 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
   const latestPeriodLabel = data?.months[0]?.label ?? "Bulan Ini";
   const filteredRecords = useMemo(() => {
     if (!data) return [];
-    const effectivePeriod = view === "export-sig-group" && selectedPeriod === "all" ? latestPeriodKey : selectedPeriod;
+    const effectivePeriod = selectedPeriod;
 
     return data.records.filter((record) => {
       const periodMatch = effectivePeriod === "all" || record.periodKey === effectivePeriod;
@@ -109,7 +108,7 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
     });
   }, [data, latestPeriodKey, selectedCompany, selectedPeriod, view]);
   const effectivePeriodLabel = selectedPeriod === "all"
-    ? (view === "export-sig-group" ? latestPeriodLabel : "Semua Periode")
+    ? "Semua Periode"
     : data?.months.find((month) => month.periodKey === selectedPeriod)?.label ?? selectedPeriod;
 
   // Stagger-reveal export cards on view switch and first data load only —
@@ -151,11 +150,10 @@ export default function ExportDashboard({ view }: { view: ExportDashboardView })
           ) : (
             <div className="space-y-2">
               {view === "export-overview" ? <OverviewView records={filteredRecords} /> : null}
-              {view === "export-rkap" ? <RkapView records={filteredRecords} /> : null}
+              {view === "export-rkap" ? <RkapView records={filteredRecords} kpi={data.kpi ?? null} /> : null}
               {view === "export-trend" ? <TrendView records={filteredRecords} /> : null}
-              {view === "export-sig-group" ? <SigGroupView records={filteredRecords} periodLabel={effectivePeriodLabel} /> : null}
               {view === "export-destinations" ? <DestinationsView records={filteredRecords} /> : null}
-              {view === "export-forecast" ? <ForecastView records={filteredRecords} /> : null}
+              {view === "export-forecast" ? <ForecastView records={filteredRecords} kpi={data.kpi ?? null} /> : null}
               {view === "export-demurrage" ? <DemurrageView records={filteredRecords} /> : null}
             </div>
           )}
