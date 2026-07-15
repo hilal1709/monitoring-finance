@@ -30,16 +30,26 @@ export function TrendChart<T extends Record<string, unknown>>({
         {[8, 15, 22, 29, 36].map((y) => (
           <line key={y} x1="3" x2="98" y1={y} y2={y} stroke="rgba(148,163,184,0.28)" strokeWidth="0.25" />
         ))}
-        {series.map((item) => {
+        {/* Render in reverse so first series (Penjualan) is drawn last = on top */}
+        {[...series].reverse().map((item, reversedIndex) => {
+          const isTopSeries = reversedIndex === series.length - 1;
           const chartPoints = points
             .map((point, index) => `${pointX(index)},${pointY(Number(point[item.key]))}`)
             .join(" ");
 
           return (
             <g key={String(item.key)}>
-              <polyline points={chartPoints} fill="none" stroke={item.color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.8" />
+              <polyline
+                points={chartPoints}
+                fill="none"
+                stroke={item.color}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={isTopSeries ? "1.2" : "0.8"}
+                strokeDasharray={isTopSeries ? "3 1.5" : undefined}
+              />
               {points.map((point, index) => (
-                <circle key={`${String(item.key)}-${point.key}`} cx={pointX(index)} cy={pointY(Number(point[item.key]))} r="1" fill={item.color}>
+                <circle key={`${String(item.key)}-${point.key}`} cx={pointX(index)} cy={pointY(Number(point[item.key]))} r={isTopSeries ? "1.3" : "1"} fill={item.color}>
                   <title>{`${item.label} ${point.label}: ${valueFormatter(Number(point[item.key]))}`}</title>
                 </circle>
               ))}
