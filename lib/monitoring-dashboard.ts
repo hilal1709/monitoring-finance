@@ -315,7 +315,10 @@ function parseWorksheet(xml: string, sharedStrings: string[], dateStyleIndexes: 
     const rowNumber = Number(rowAttrs.get("r"));
     const row: CellValue[] = [];
 
-    for (const cellMatch of rowMatch[2].matchAll(/<c\b[^>]*(?:\/>|>[\s\S]*?<\/c>)/g)) {
+    // Dua bentuk sel dipisah eksplisit: `<c .../>` (self-closing, kosong) dan
+    // `<c ...>...</c>`. Pola gabungan `[^>]*(?:\/>|>...)` bisa backtrack dan
+    // menelan beberapa sel sekaligus saat sel kosong diikuti sel bernilai.
+    for (const cellMatch of rowMatch[2].matchAll(/<c\b(?:[^>]*?\/>|[^>]*>[\s\S]*?<\/c>)/g)) {
       const cellXml = cellMatch[0];
       const reference = parseAttributes(cellXml.match(/^<c\b([^>]*)/)?.[1] ?? "").get("r") ?? "";
       const colIndex = columnIndexFromReference(reference);
@@ -323,6 +326,12 @@ function parseWorksheet(xml: string, sharedStrings: string[], dateStyleIndexes: 
     }
 
     rows[Math.max(0, rowNumber - 1)] = row;
+  }
+
+  // Baris kosong bisa tidak dituliskan di XML sehingga array-nya berlubang
+  // (undefined); isi dengan baris kosong agar iterasi konsumen aman.
+  for (let index = 0; index < rows.length; index += 1) {
+    rows[index] ??= [];
   }
 
   return rows;
@@ -847,7 +856,9 @@ function parseExportKpiSummary(workbook: ParsedWorkbook): ExportKpiSummary | nul
   const rowByName = new Map<string, CellValue[]>();
 
   for (const row of sheet.rows.slice(headerRowIndex + 1)) {
-    const label = toText(row[0]).toLowerCase();
+    // Label baris bisa berada di kolom A atau B tergantung versi workbook,
+    // jadi ambil sel teks non-kosong pertama sebagai label.
+    const label = toText(row.find((cell) => toText(cell))).toLowerCase();
 
     if (label) {
       rowByName.set(label, row);
