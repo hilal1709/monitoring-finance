@@ -23,6 +23,7 @@ export function SidebarNavigation({
   const [openGroups, setOpenGroups] = useState<Record<(typeof navigationGroups)[number]["id"], boolean>>({
     export: true,
     "non-export": true,
+    kpi: true,
   });
   const navRef = useRef<HTMLElement>(null);
 

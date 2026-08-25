@@ -9,6 +9,7 @@ import {
   Ship,
   Target,
   Wallet,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,8 +41,16 @@ export const navigationGroups = [
       { label: "Invoice", icon: ReceiptText, href: "/invoice", view: "invoice" },
     ],
   },
+  {
+    id: "kpi",
+    label: "KPI",
+    icon: Gauge,
+    items: [
+      { label: "KPI Otobos", icon: Gauge, href: "/kpi", view: "kpi" },
+    ],
+  },
 ] satisfies {
-  id: "export" | "non-export";
+  id: "export" | "non-export" | "kpi";
   label: string;
   icon: LucideIcon;
   items: { label: string; icon: LucideIcon; href: string; view: DashboardView }[];
