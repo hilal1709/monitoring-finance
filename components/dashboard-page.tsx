@@ -13,6 +13,7 @@ import { SidebarNavigation } from "@/components/dashboard/sidebar-navigation";
 import { StoredMonthPanel } from "@/components/dashboard/stored-month-panel";
 import { UploadCard } from "@/components/dashboard/upload-card";
 import ExportDashboard from "@/components/export-dashboard";
+import KpiDashboard from "@/components/kpi-dashboard";
 import { fromPersistedReport, loadedReportsFromPersisted } from "@/lib/dashboard-data";
 import { exportViewConfig, isExportDashboardView, uploadCards } from "@/lib/dashboard-constants";
 import type { DashboardView, FilterKey, LoadedReport, OverviewFilters, PeriodMode, ReportFilters, StoredMonth, ThemeMode } from "@/lib/dashboard-types";
@@ -86,13 +87,7 @@ export default function DashboardPage({
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    if (typeof document === "undefined") {
-      return "dark";
-    }
-
-    return document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  });
+    const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [deletingMonthKey, setDeletingMonthKey] = useState<string | null>(null);
   const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports && !isExportDashboardView(view));
@@ -104,10 +99,11 @@ export default function DashboardPage({
   const hasAnyReport = Boolean(reports.invoice || reports.payment);
   const activeRole = view === "invoice" || view === "payment" ? view : null;
   const exportSection = isExportDashboardView(view) ? exportViewConfig[view] : null;
+  const isKpiView = view === "kpi-otobos" || view === "kpi-timely";
   const isNonExportOverview = view === "overview";
   const activeUploadCards = activeRole ? uploadCards.filter((card) => card.role === activeRole) : uploadCards;
   const pageTitle = exportSection?.title
-    ?? (activeRole === "invoice" ? "Invoice Report Monitoring" : activeRole === "payment" ? "Payment Report Monitoring" : "Overview Report Monitoring");
+    ?? (view === "kpi-timely" ? "KPI Timely Task" : isKpiView ? "KPI Otobos" : activeRole === "invoice" ? "Invoice Report Monitoring" : activeRole === "payment" ? "Payment Report Monitoring" : "Overview Report Monitoring");
   const overviewReady = Boolean(reports.invoice && reports.payment);
 
   // Stagger-reveal the dashboard blocks whenever the view or its data changes.
@@ -627,6 +623,7 @@ export default function DashboardPage({
       <main className={cn("ml-0 min-h-screen px-4 pb-4 pt-24 transition-[margin] duration-300 ease-in-out md:px-8", isSidebarCollapsed ? "md:ml-0" : "md:ml-64")}>
         <div ref={contentRef} className="mx-auto max-w-[1500px] space-y-3">
           {exportSection ? <ExportDashboard view={view as ExportDashboardView} /> : null}
+          {isKpiView ? <KpiDashboard embedded metricIndex={view === "kpi-timely" ? 1 : 0} /> : null}
 
           {activeRole && !reports[activeRole] ? (
             <section id="upload" className="grid gap-4 lg:grid-cols-1">

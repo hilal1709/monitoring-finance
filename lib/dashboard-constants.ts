@@ -46,7 +46,8 @@ export const navigationGroups = [
     label: "KPI",
     icon: Gauge,
     items: [
-      { label: "KPI Otobos", icon: Gauge, href: "/kpi", view: "kpi" },
+      { label: "Otobos", icon: Target, href: "/kpi", view: "kpi-otobos" },
+      { label: "Timely Task", icon: Gauge, href: "/kpi/timely", view: "kpi-timely" },
     ],
   },
 ] satisfies {

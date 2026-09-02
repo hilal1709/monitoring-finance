@@ -6,7 +6,7 @@ import type {
   WorkbookRole,
 } from "@/lib/monitoring-dashboard-types";
 
-export type DashboardView = "overview" | WorkbookRole | ExportDashboardView | "kpi";
+export type DashboardView = "overview" | WorkbookRole | ExportDashboardView | "kpi-otobos" | "kpi-timely";
 export type FilterKey = "customerType" | "customerName" | "year" | "month" | "invoiceType" | "status";
 export type ReportFilters = Partial<Record<FilterKey, string[]>>;
 export type OverviewFilters = {
