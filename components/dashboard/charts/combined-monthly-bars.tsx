@@ -42,30 +42,30 @@ export function CombinedMonthlyBars({
         <span>Billing vs Payment Trend</span>
         <span className="flex flex-wrap items-center gap-3">
           <PeriodModeSelector value={periodMode} onChange={onPeriodModeChange} />
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 bg-[#ffd166]" /> Invoice</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 bg-[#70f0bf]" /> Payment</span>
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#facc15]" /> Invoice</span>
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#22c55e]" /> Payment</span>
         </span>
       </div>
       {points.length > 0 ? (
         points.map((point) => (
-          <div key={point.key} className="grid grid-cols-[64px_1fr] items-center gap-3 text-[10px] font-bold text-slate-300">
+          <div key={point.key} className="grid grid-cols-[64px_1fr] items-center gap-3 text-[11px] font-bold text-slate-100">
             <span className="truncate text-right">{point.label}</span>
             <div className="grid gap-1">
-              <div tabIndex={0} title={`Invoice ${point.label}: ${formatTrendValue(point.invoice, periodMode)}`} className="group relative h-4 overflow-hidden rounded bg-white/[0.06] outline-none">
+              <div tabIndex={0} title={`Invoice ${point.label}: ${formatTrendValue(point.invoice, periodMode)}`} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
                 <HoverValue text={`Invoice ${point.label}: ${formatTrendValue(point.invoice, periodMode)}`} />
                 <div
-                  className={cn("h-full border", point.invoice < 0 ? "border-[#b91c1c] bg-[#ff9f8e]" : "border-[#b88700] bg-[#ffd166]")}
+                  className={cn("h-full border", point.invoice < 0 ? "border-[#fecaca] bg-[#dc2626]" : "border-[#fde68a] bg-[#d97706]")}
                   style={{ width: `${chartBarWidth(point.invoice, max)}%` }}
                 />
-                <span className="chart-value absolute right-1 top-0 text-[9px] font-bold">{formatTrendValue(point.invoice, periodMode)}</span>
+                <span className="chart-value absolute right-1 top-0.5 text-[10px] font-black text-slate-950">{formatTrendValue(point.invoice, periodMode)}</span>
               </div>
-              <div tabIndex={0} title={`Payment ${point.label}: ${formatTrendValue(point.payment, periodMode)}`} className="group relative h-4 overflow-hidden rounded bg-white/[0.06] outline-none">
+              <div tabIndex={0} title={`Payment ${point.label}: ${formatTrendValue(point.payment, periodMode)}`} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
                 <HoverValue text={`Payment ${point.label}: ${formatTrendValue(point.payment, periodMode)}`} />
                 <div
-                  className={cn("h-full border", point.payment < 0 ? "border-[#b91c1c] bg-[#ff9f8e]" : "border-[#0f766e] bg-[#70f0bf]")}
+                  className={cn("h-full border", point.payment < 0 ? "border-[#fecaca] bg-[#dc2626]" : "border-[#bbf7d0] bg-[#16a34a]")}
                   style={{ width: `${chartBarWidth(point.payment, max)}%` }}
                 />
-                <span className="chart-value absolute right-1 top-0 text-[9px] font-bold">{formatTrendValue(point.payment, periodMode)}</span>
+                <span className="chart-value absolute right-1 top-0.5 text-[10px] font-black text-slate-950">{formatTrendValue(point.payment, periodMode)}</span>
               </div>
             </div>
           </div>

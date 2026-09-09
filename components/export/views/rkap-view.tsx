@@ -73,8 +73,8 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
             <TrendChart
               points={kpiMonthlyPoints}
               series={[
-                { key: "salesTarget", label: "Target", color: "#7dd3fc" },
-                { key: "sales", label: "Realisasi", color: "#ffd166" },
+                { key: "salesTarget", label: "Target", color: "#22d3ee" },
+                { key: "sales", label: "Realisasi", color: "#facc15" },
               ]}
               valueFormatter={formatUsd}
             />
@@ -83,8 +83,8 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
             <TrendChart
               points={kpiMonthlyPoints}
               series={[
-                { key: "paymentTarget", label: "Target", color: "#7dd3fc" },
-                { key: "payment", label: "Realisasi", color: "#70f0bf" },
+                { key: "paymentTarget", label: "Target", color: "#22d3ee" },
+                { key: "payment", label: "Realisasi", color: "#22c55e" },
               ]}
               valueFormatter={formatUsd}
             />
@@ -120,7 +120,7 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
         </ChartPanel>
       </div>
       <ChartPanel data-animate-card title="Actual Ekspor Bulanan (USD)">
-        <TrendChart points={monthly} series={[{ key: "sales", label: "Actual", color: "#ffd166" }]} valueFormatter={formatUsd} />
+        <TrendChart points={monthly} series={[{ key: "sales", label: "Actual", color: "#facc15" }]} valueFormatter={formatUsd} />
       </ChartPanel>
     </>
   );

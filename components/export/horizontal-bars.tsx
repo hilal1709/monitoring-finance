@@ -24,13 +24,13 @@ export function HorizontalBars({
       {items.map((item) => (
         <Fragment key={item.label}>
           <span className="truncate text-right text-[11px] font-semibold text-[var(--app-fg)]" title={item.label}>{item.label}</span>
-          <div className="relative h-5 min-w-0 overflow-hidden rounded bg-[var(--surface-muted)]">
+          <div className="relative h-6 min-w-0 overflow-hidden rounded border border-white/30 bg-[var(--surface-muted)]">
             <div
-              className={cn("h-full min-w-0 rounded", item.value < 0 ? "bg-[#ff7b72]" : "bg-gradient-to-r from-[#4cc9d8] to-[#70f0bf]")}
+              className={cn("h-full min-w-0 rounded", item.value < 0 ? "bg-[#ef4444]" : "bg-[#06b6d4]")}
               style={{ width: `${Math.max(2, (Math.abs(item.value) / max) * 100)}%` }}
             />
           </div>
-          <span className="whitespace-nowrap text-[10px] font-medium tabular-nums text-[var(--app-fg)]">
+          <span className="whitespace-nowrap text-[11px] font-bold tabular-nums text-[var(--app-fg)]">
             {formatValue(item.value)}
           </span>
         </Fragment>

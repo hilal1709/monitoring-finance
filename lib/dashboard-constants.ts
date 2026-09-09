@@ -83,7 +83,8 @@ export const uploadCards = [
   },
 ];
 
-export const palette = ["#4cc9d8", "#ef4444", "#f97316", "#facc15", "#2563eb", "#94a3b8", "#22c55e", "#a855f7"];
+// Vivid, well-separated colors retain their distinction on the dark dashboard.
+export const palette = ["#22D3EE", "#EF4444", "#F97316", "#FACC15", "#3B82F6", "#E2E8F0", "#22C55E", "#D946EF"];
 export const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 export const monthOrder = new Map(monthLabels.map((month, index) => [month, index + 1]));
 export const periodModeOptions: { value: PeriodMode; label: string }[] = [

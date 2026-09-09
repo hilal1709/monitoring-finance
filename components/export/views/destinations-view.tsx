@@ -33,14 +33,14 @@ export function DestinationsView({ records }: { records: ExportRecord[] }) {
           <button
             type="button"
             onClick={() => setMetric("usd")}
-            className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors ${metric === "usd" ? "border-[#ffd166]/60 bg-[#ffd166]/15 text-[#ffd166]" : "border-[var(--border)] text-[var(--muted-fg)]"}`}
+            className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors ${metric === "usd" ? "border-[#fde68a] bg-[#d97706] text-slate-950" : "border-[var(--border)] text-[var(--muted-fg)]"}`}
           >
             Nilai (USD)
           </button>
           <button
             type="button"
             onClick={() => setMetric("tonnage")}
-            className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors ${metric === "tonnage" ? "border-[#70f0bf]/60 bg-[#70f0bf]/15 text-[#70f0bf]" : "border-[var(--border)] text-[var(--muted-fg)]"}`}
+            className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors ${metric === "tonnage" ? "border-[#bbf7d0] bg-[#16a34a] text-white" : "border-[var(--border)] text-[var(--muted-fg)]"}`}
           >
             Volume (MT)
           </button>

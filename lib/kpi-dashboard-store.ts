@@ -7,6 +7,9 @@ export type KpiPeriod = { periodKey: string; label: string; metrics: KpiMetric[]
 
 const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 let schema: Promise<void> | null = null;
+type KpiDashboardPayload = { periods: KpiPeriod[] };
+const KPI_CACHE_TTL_MS = 30_000;
+let dashboardCache: { data: KpiDashboardPayload; expiresAt: number } | null = null;
 
 function ensureSchema() {
   schema ??= getPostgresPool().query(
@@ -151,6 +154,7 @@ export async function saveKpiWorkbook(file: { name: string; buffer: Buffer }) {
       );
     }
     await client.query("commit");
+    dashboardCache = null;
   } catch (error) {
     await client.query("rollback");
     throw error;
@@ -161,17 +165,23 @@ export async function saveKpiWorkbook(file: { name: string; buffer: Buffer }) {
   return records.map(({ periodKey, label }) => ({ periodKey, label }));
 }
 
-export async function getKpiDashboard() {
+export async function getKpiDashboard(): Promise<KpiDashboardPayload> {
   await ensureSchema();
+  if (dashboardCache && dashboardCache.expiresAt > Date.now()) return dashboardCache.data;
+
   const result = await getPostgresPool().query<{ period_key: string; label: string; metrics: KpiMetric[]; source_filename: string; uploaded_at: string; raw_sheet_count: number }>(
     "select period_key,label,metrics,source_filename,uploaded_at::text,raw_sheet_count from public.kpi_dashboard_periods order by period_key desc",
   );
-  return { periods: result.rows.map((row) => ({
-    periodKey: row.period_key,
-    label: row.label,
-    metrics: row.metrics,
-    sourceFilename: row.source_filename,
-    uploadedAt: row.uploaded_at,
-    rawSheetCount: row.raw_sheet_count,
-  })) };
+  const data: KpiDashboardPayload = {
+    periods: result.rows.map((row) => ({
+      periodKey: row.period_key,
+      label: row.label,
+      metrics: row.metrics,
+      sourceFilename: row.source_filename,
+      uploadedAt: row.uploaded_at,
+      rawSheetCount: row.raw_sheet_count,
+    })),
+  };
+  dashboardCache = { data, expiresAt: Date.now() + KPI_CACHE_TTL_MS };
+  return data;
 }

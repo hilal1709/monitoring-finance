@@ -67,12 +67,12 @@ export function LineTrend({
           <div className="relative h-40 w-full">
             <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
               {[8, 15, 22, 29, 36].map((y) => (
-                <line key={y} x1="3" x2="98" y1={y} y2={y} stroke="rgba(148,163,184,0.28)" strokeWidth="0.25" />
+                <line key={y} x1="3" x2="98" y1={y} y2={y} stroke="rgba(226,232,240,0.55)" strokeWidth="0.35" />
               ))}
               {comparePolyline ? (
-                <polyline points={comparePolyline} fill="none" stroke="#f87171" strokeDasharray="1.5 1.5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.7" />
+                <polyline points={comparePolyline} fill="none" stroke="#ef4444" strokeDasharray="2 1.5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.35" />
               ) : null}
-              <polyline points={polyline} fill="none" stroke="#7dd3fc" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.9" />
+              <polyline points={polyline} fill="none" stroke="#22d3ee" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
             </svg>
             {points.map((point, index) => {
               const x = pointX(index);
@@ -81,14 +81,14 @@ export function LineTrend({
               return (
                 <span
                   key={point.key}
-                  className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-help rounded-full bg-[#70f0bf]"
+                  className="absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 cursor-help rounded-full border-2 border-[#0c1724] bg-[#22d3ee]"
                   style={{ left: `${x}%`, top: `${(y / 44) * 100}%` }}
                   title={`${point.label}: ${point.valueLabel}${point.compareLabel != null ? ` (${compareName}: ${point.compareLabel})` : ""}`}
                 />
               );
             })}
           </div>
-          <div className="relative h-4 text-[10px] text-slate-400">
+          <div className="relative h-5 text-[11px] font-semibold text-slate-200">
             {points.map((point, index) => (
               <span
                 key={point.key}
@@ -101,12 +101,12 @@ export function LineTrend({
             ))}
           </div>
           {hasCompare || periodMode === "yoy" ? (
-            <div className="mt-1.5 flex items-center justify-end gap-3 text-[10px] text-slate-400">
+            <div className="mt-1.5 flex items-center justify-end gap-3 text-[11px] font-semibold text-slate-200">
               <span className="inline-flex items-center gap-1">
-                <span className="h-0.5 w-3 rounded-full bg-[#7dd3fc]" /> Saat ini
+                <span className="h-1 w-4 rounded-full bg-[#22d3ee]" /> Saat ini
               </span>
               <span className="inline-flex items-center gap-1">
-                <span className="h-0.5 w-3 rounded-full border-t border-dashed border-[#f87171]" /> {compareName}
+                <span className="h-1 w-4 rounded-full border-t-2 border-dashed border-[#ef4444]" /> {compareName}
               </span>
             </div>
           ) : null}

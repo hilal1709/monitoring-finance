@@ -14,16 +14,16 @@ export function TargetAchievementChart({ points }: { points: ReturnType<typeof p
           const positive = point.variance >= 0;
 
           return (
-            <div key={point.month} tabIndex={0} title={`${point.month}: ${formatDeltaPercent(point.variance)} | Realisasi ${formatCurrency(point.realization, true)} | Target ${formatCurrency(point.target, true)}`} className="group relative grid grid-cols-[30px_1fr_42px] items-center gap-1.5 text-[9px] font-bold text-slate-300 outline-none">
+            <div key={point.month} tabIndex={0} title={`${point.month}: ${formatDeltaPercent(point.variance)} | Realisasi ${formatCurrency(point.realization, true)} | Target ${formatCurrency(point.target, true)}`} className="group relative grid grid-cols-[30px_1fr_48px] items-center gap-1.5 text-[10px] font-bold text-slate-100 outline-none">
               <span>{point.month}</span>
-              <div className="relative h-3.5 overflow-hidden rounded bg-white/[0.06]">
+              <div className="relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10]">
                 <HoverValue text={`${point.month}: ${formatDeltaPercent(point.variance)} dari target`} />
                 <div
-                  className={cn("h-full border", positive ? "border-[#70f0bf]/40 bg-[#70f0bf]" : "border-[#ff9f8e]/40 bg-[#ff9f8e]")}
+                  className={cn("h-full border", positive ? "border-[#bbf7d0] bg-[#16a34a]" : "border-[#fecaca] bg-[#dc2626]")}
                   style={{ width: `${Math.max(2, Math.min(100, (Math.abs(point.variance) / maxAbs) * 100))}%` }}
                 />
               </div>
-              <span className={cn("text-right", positive ? "text-[#70f0bf]" : "text-[#ff9f8e]")}>{formatDeltaPercent(point.variance)}</span>
+              <span className={cn("text-right", positive ? "text-[#4ade80]" : "text-[#f87171]")}>{formatDeltaPercent(point.variance)}</span>
             </div>
           );
         })}
@@ -40,28 +40,28 @@ export function TargetVsRealizationChart({ points }: { points: ReturnType<typeof
       <ChartTitle title="Target VS Realisasi" />
       <div className="mt-2 space-y-1">
         {points.map((point) => (
-          <div key={point.month} tabIndex={0} title={`${point.month}: Target ${formatCurrency(point.target)} | Realisasi ${formatCurrency(point.realization)}`} className="group relative grid grid-cols-[30px_minmax(0,1fr)_68px] items-center gap-1.5 text-[9px] font-bold text-slate-300 outline-none">
+          <div key={point.month} tabIndex={0} title={`${point.month}: Target ${formatCurrency(point.target)} | Realisasi ${formatCurrency(point.realization)}`} className="group relative grid grid-cols-[30px_minmax(0,1fr)_72px] items-center gap-1.5 text-[10px] font-bold text-slate-100 outline-none">
             <span>{point.month}</span>
             <div className="space-y-0.5">
-              <div className="relative h-2.5 overflow-hidden rounded bg-white/[0.06]">
+              <div className="relative h-3.5 overflow-hidden rounded border border-white/30 bg-white/[0.10]">
                 <HoverValue text={`Target ${point.month}: ${formatCurrency(point.target, true)}`} />
-                <div className="h-full border border-[#ffd166]/40 bg-[#ffd166]" style={{ width: `${Math.max(2, (point.target / maxValue) * 100)}%` }} />
+                <div className="h-full border border-[#fde68a] bg-[#d97706]" style={{ width: `${Math.max(2, (point.target / maxValue) * 100)}%` }} />
               </div>
-              <div className="relative h-2.5 overflow-hidden rounded bg-white/[0.06]">
+              <div className="relative h-3.5 overflow-hidden rounded border border-white/30 bg-white/[0.10]">
                 <HoverValue text={`Realisasi ${point.month}: ${formatCurrency(point.realization, true)}`} />
-                <div className="h-full border border-[#4cc9d8]/40 bg-[#4cc9d8]" style={{ width: `${Math.max(point.realization > 0 ? 2 : 0, (point.realization / maxValue) * 100)}%` }} />
+                <div className="h-full border border-[#67e8f9] bg-[#0891b2]" style={{ width: `${Math.max(point.realization > 0 ? 2 : 0, (point.realization / maxValue) * 100)}%` }} />
               </div>
             </div>
-            <div className="space-y-0.5 text-right text-[9px] font-black leading-3">
-              <div className="text-[#ffd166]">{formatCurrency(point.target, true)}</div>
-              <div className="text-[#4cc9d8]">{formatCurrency(point.realization, true)}</div>
+            <div className="space-y-0.5 text-right text-[10px] font-black leading-4">
+              <div className="text-[#facc15]">{formatCurrency(point.target, true)}</div>
+              <div className="text-[#22d3ee]">{formatCurrency(point.realization, true)}</div>
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-2 flex gap-3 text-[9px] font-bold text-slate-400">
-        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 bg-[#ffd166]" /> Target</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 bg-[#4cc9d8]" /> Realisasi</span>
+      <div className="mt-2 flex gap-3 text-[10px] font-bold text-slate-200">
+        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#d97706]" /> Target</span>
+        <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#0891b2]" /> Realisasi</span>
       </div>
     </div>
   );

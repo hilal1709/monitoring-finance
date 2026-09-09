@@ -20,10 +20,10 @@ export function TrendView({ records }: { records: ExportRecord[] }) {
       </div>
       <div data-animate-card className="grid gap-2 lg:grid-cols-2">
         <ChartPanel title="Tren Nilai Ekspor Bulanan (USD)">
-          <TrendChart points={monthly} series={[{ key: "sales", label: "Nilai Ekspor", color: "#ffd166" }]} valueFormatter={formatUsd} />
+          <TrendChart points={monthly} series={[{ key: "sales", label: "Nilai Ekspor", color: "#facc15" }]} valueFormatter={formatUsd} />
         </ChartPanel>
         <ChartPanel title="Tren Volume Ekspor Bulanan (MT)">
-          <TrendChart points={monthly} series={[{ key: "tonnage", label: "Tonase", color: "#70f0bf" }]} valueFormatter={formatTonnage} />
+          <TrendChart points={monthly} series={[{ key: "tonnage", label: "Tonase", color: "#22c55e" }]} valueFormatter={formatTonnage} />
         </ChartPanel>
       </div>
       <div data-animate-card className="grid gap-2 lg:grid-cols-2">

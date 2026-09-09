@@ -7,9 +7,9 @@ import type { DestinationGeoDatum } from "@/lib/export-destinations-geo";
 
 // Warna aksen untuk 3 tujuan terbesar; sisanya abu-abu netral.
 function accentForRank(rank: number) {
-  if (rank === 0) return "#ffd166";
-  if (rank === 1) return "#7dd3fc";
-  if (rank === 2) return "#70f0bf";
+  if (rank === 0) return "#facc15";
+  if (rank === 1) return "#22d3ee";
+  if (rank === 2) return "#22c55e";
   return "#94a3b8";
 }
 

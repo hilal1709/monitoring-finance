@@ -25,9 +25,9 @@ export function OverviewView({ records }: { records: ExportRecord[] }) {
           <TrendChart
             points={monthly}
             series={[
-              { key: "sales", label: "Penjualan", color: "#ffd166" },
-              { key: "payment", label: "Penerimaan", color: "#70f0bf" },
-              { key: "outstanding", label: "Piutang", color: "#7dd3fc" },
+              { key: "sales", label: "Penjualan", color: "#facc15" },
+              { key: "payment", label: "Penerimaan", color: "#22c55e" },
+              { key: "outstanding", label: "Piutang", color: "#22d3ee" },
             ]}
             valueFormatter={formatUsd}
           />

@@ -17,14 +17,14 @@ export function HorizontalBars({ title, items, maxItems = 8 }: { title?: string;
         {visible.map((item) => (
           <Fragment key={item.label}>
             <span className="truncate text-right text-[11px]" title={rankedItemTooltip(item)}>{item.label}</span>
-            <div tabIndex={0} title={rankedItemTooltip(item)} className="group relative h-4 overflow-hidden rounded bg-white/[0.06] outline-none">
+            <div tabIndex={0} title={rankedItemTooltip(item)} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
               <HoverValue text={rankedItemTooltip(item)} />
               <div
-                className="h-full border border-[#2dd4bf]/40 bg-gradient-to-r from-[#0ea5e9] to-[#2dd4bf]"
+                className="h-full border border-[#22d3ee] bg-[#0891b2]"
                 style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }}
               />
             </div>
-            <span className="whitespace-nowrap text-right text-[9px] font-semibold text-[#ffd166]">{formatCurrency(item.value, true)}</span>
+            <span className="whitespace-nowrap text-right text-[10px] font-bold text-[#facc15]">{formatCurrency(item.value, true)}</span>
           </Fragment>
         ))}
       </div>

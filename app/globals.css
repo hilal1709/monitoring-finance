@@ -13,6 +13,11 @@
   --border-strong: rgba(255, 255, 255, 0.15);
   --muted-fg: #64748b;
   --soft-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  --kpi-table-header: #1d334b;
+  --kpi-table-body: #101d2c;
+  --kpi-table-alt: #142434;
+  --kpi-table-text: #f8fafc;
+  --kpi-table-border: #4b6075;
 }
 
 :root[data-theme="light"] {
@@ -28,6 +33,11 @@
   --border-strong: rgba(15, 23, 42, 0.18);
   --muted-fg: #64748b;
   --soft-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --kpi-table-header: #dce6f1;
+  --kpi-table-body: #ffffff;
+  --kpi-table-alt: #f1f5f9;
+  --kpi-table-text: #0f172a;
+  --kpi-table-border: #94a3b8;
 }
 
 @theme inline {

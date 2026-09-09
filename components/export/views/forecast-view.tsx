@@ -45,8 +45,8 @@ export function ForecastView({ records, kpi }: { records: ExportRecord[]; kpi: E
             <TrendChart
               points={kpiPaymentPoints}
               series={[
-                { key: "paymentTarget", label: "Target", color: "#7dd3fc" },
-                { key: "paymentActual", label: "Realisasi", color: "#70f0bf" },
+                { key: "paymentTarget", label: "Target", color: "#22d3ee" },
+                { key: "paymentActual", label: "Realisasi", color: "#22c55e" },
               ]}
               valueFormatter={formatUsd}
             />
