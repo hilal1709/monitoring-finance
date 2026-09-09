@@ -31,7 +31,7 @@ function rows(sheet: XLSX.WorkSheet) {
 }
 
 function month(value: unknown) {
-  const key = String(value ?? "").trim().replace(/^OS\s+/i, "").replace(/^May$/i, "Mei").slice(0, 3).toLowerCase();
+  const key = String(value ?? "").trim().replace(/^OS\s+/i, "").replace(/^May$/i, "Mei").replace(/^Aug$/i, "Agu").replace(/^Oct$/i, "Okt").replace(/^Dec$/i, "Des").slice(0, 3).toLowerCase();
   return key ? months.find((item) => item.toLowerCase().startsWith(key)) : undefined;
 }
 
@@ -80,7 +80,7 @@ function timely(workbook: XLSX.WorkBook) {
   const values = new Map<string, number>();
 
   for (const name of workbook.SheetNames) {
-    const match = /^DSA[_-]?(Jan|Feb|Mar|Apr|Mei|May|Jun|Jul|Agu|Sep|Okt|Nov|Des)/i.exec(name);
+    const match = /^DSA[_-]?(Jan|Feb|Mar|Apr|Mei|May|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)/i.exec(name);
     if (!match) continue;
 
     const key = month(match[1]);
