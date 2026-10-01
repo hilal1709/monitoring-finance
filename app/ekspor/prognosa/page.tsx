@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import DashboardPage from "@/components/dashboard-page";
+import { getCachedExportDashboard, safely } from "@/lib/data-cache";
 
-export default function ExportForecastPage() {
-  return <DashboardPage view="export-forecast" />;
+// Rendered on the server from the tagged data cache (see lib/data-cache.ts) and
+// regenerated when an upload/delete invalidates the tag.
+export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Prognosa Ekspor",
+  description: "Prognosa penjualan dan pembayaran ekspor.",
+};
+
+export default async function ExportForecastPage() {
+  const initialExport = await safely(() => getCachedExportDashboard());
+
+  return <DashboardPage view="export-forecast" initialExport={initialExport} />;
 }

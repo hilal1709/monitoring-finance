@@ -1,33 +1,37 @@
 "use client";
 
-import { Fragment } from "react";
-import { ChartTitle, HoverValue } from "@/components/dashboard/charts/chart-primitives";
+import { COLORS, HorizontalBarChart } from "@/components/charts";
+import { EmptyChart } from "@/components/charts/empty-chart";
+import { ChartTitle } from "@/components/dashboard/charts/chart-primitives";
 import { rankedItemTooltip } from "@/lib/dashboard-data";
 import { formatCurrency } from "@/lib/dashboard-format";
 import type { RankedItem } from "@/lib/monitoring-dashboard-types";
 
-export function HorizontalBars({ title, items, maxItems = 8 }: { title?: string; items: RankedItem[]; maxItems?: number }) {
+const barTones = {
+  turquoise: COLORS.turquoise,
+  coral: COLORS.coral,
+  yellow: COLORS.yellow,
+  teal: COLORS.teal,
+} as const;
+
+export type BarTone = keyof typeof barTones;
+
+export function HorizontalBars({ title, items, maxItems = 8, tone = "turquoise" }: { title?: string; items: RankedItem[]; maxItems?: number; tone?: BarTone }) {
   const visible = items.slice(0, maxItems);
-  const max = Math.max(...visible.map((item) => item.value), 1);
 
   return (
-    <div className="space-y-1.5 rounded-lg border border-white/10 bg-[#0c1724] p-2">
+    <div className="space-y-1.5 rounded-lg border border-border bg-card p-2">
       {title ? <ChartTitle title={title} /> : null}
-      <div className="grid grid-cols-[7rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 px-2 pb-2">
-        {visible.map((item) => (
-          <Fragment key={item.label}>
-            <span className="truncate text-right text-[11px]" title={rankedItemTooltip(item)}>{item.label}</span>
-            <div tabIndex={0} title={rankedItemTooltip(item)} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
-              <HoverValue text={rankedItemTooltip(item)} />
-              <div
-                className="h-full border border-[#22d3ee] bg-[#0891b2]"
-                style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }}
-              />
-            </div>
-            <span className="whitespace-nowrap text-right text-[10px] font-bold text-[#facc15]">{formatCurrency(item.value, true)}</span>
-          </Fragment>
-        ))}
-      </div>
+      {visible.length > 0 ? (
+        <HorizontalBarChart
+          items={visible.map((item) => ({ label: item.label, value: item.value, tooltip: rankedItemTooltip(item) }))}
+          color={barTones[tone]}
+          negativeColor={tone === "coral" ? COLORS.teal : COLORS.coral}
+          format={(value) => formatCurrency(value, true)}
+        />
+      ) : (
+        <EmptyChart />
+      )}
     </div>
   );
 }

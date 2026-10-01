@@ -1,6 +1,10 @@
-import { Loader2, UploadCloud } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { ExportDashboardPayload } from "@/lib/export-dashboard-types";
+"use client";
+
+import { Loading03Icon, CloudUploadIcon } from "@hugeicons/core-free-icons";
+import { Icon } from "@/components/ui/icon";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { ExportViewPayload } from "@/lib/export-dashboard-types";
 
 export function ExportToolbar({
   data,
@@ -11,7 +15,7 @@ export function ExportToolbar({
   onCompanyChange,
   onUpload,
 }: {
-  data: ExportDashboardPayload;
+  data: ExportViewPayload;
   selectedPeriod: string;
   selectedCompany: string;
   uploading: boolean;
@@ -22,23 +26,43 @@ export function ExportToolbar({
   const companies = [...new Set(data.records.map((record) => record.companyCode))].sort();
 
   return (
-    <section data-animate-card className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2">
+    <section data-animate-card className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2">
       <div className="min-w-0 flex-1 px-1">
-        <p className="truncate text-xs font-bold text-[var(--app-fg)]">{data.filename}</p>
-        <p className="truncate text-[10px] text-[var(--muted-fg)]">{data.records.length.toLocaleString("id-ID")} baris dari sheet {data.sheetName}</p>
+        <p className="truncate text-xs font-bold text-teal">{data.filename}</p>
+        <p className="truncate text-[10px] text-muted-foreground">
+          {data.records.length.toLocaleString("id-ID")} baris dari sheet {data.sheetName}
+        </p>
       </div>
-      <select className="h-9 min-w-36 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 text-xs font-semibold text-[var(--app-fg)]" value={selectedPeriod} onChange={(event) => onPeriodChange(event.target.value)}>
-        <option value="all">Semua Periode</option>
-        {data.months.map((month) => <option key={month.periodKey} value={month.periodKey}>{month.label}</option>)}
-      </select>
-      <select className="h-9 min-w-32 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 text-xs font-semibold text-[var(--app-fg)]" value={selectedCompany} onChange={(event) => onCompanyChange(event.target.value)}>
-        <option value="all">SIG Group</option>
-        {companies.map((company) => <option key={company} value={company}>{company}</option>)}
-      </select>
-      <Button className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]" disabled={uploading} onClick={onUpload}>
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-        <span className="hidden sm:inline">{uploading ? "Menyimpan..." : "Perbarui Data"}</span>
-      </Button>
+      <Select value={selectedPeriod} onValueChange={onPeriodChange}>
+        <SelectTrigger aria-label="Filter periode" className="h-9 min-w-36 bg-muted text-xs font-semibold">
+          <SelectValue>{selectedPeriod === "all" ? "Semua Periode" : data.months.find((month) => month.periodKey === selectedPeriod)?.label}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Periode</SelectItem>
+          {data.months.map((month) => (
+            <SelectItem key={month.periodKey} value={month.periodKey}>
+              {month.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={selectedCompany} onValueChange={onCompanyChange}>
+        <SelectTrigger aria-label="Filter company" className="h-9 min-w-32 bg-muted text-xs font-semibold">
+          <SelectValue>{selectedCompany === "all" ? "SIG Group" : selectedCompany}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">SIG Group</SelectItem>
+          {companies.map((company) => (
+            <SelectItem key={company} value={company}>
+              {company}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <MagneticButton disabled={uploading} onClick={onUpload}>
+        <Icon icon={uploading ? Loading03Icon : CloudUploadIcon} className={uploading ? "animate-spin" : undefined} />
+        <span className="sr-only sm:not-sr-only">{uploading ? "Menyimpan…" : "Perbarui Data"}</span>
+      </MagneticButton>
     </section>
   );
 }

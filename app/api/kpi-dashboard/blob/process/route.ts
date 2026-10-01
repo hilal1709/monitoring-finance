@@ -1,4 +1,5 @@
 import { get } from "@vercel/blob";
+import { cacheTags, invalidate } from "@/lib/data-cache";
 import { getKpiDashboard, saveKpiWorkbook } from "@/lib/kpi-dashboard-store";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
     if (!blob) return Response.json({ error: "File KPI di Blob tidak ditemukan." }, { status: 404 });
     const buffer = Buffer.from(await new Response(blob.stream).arrayBuffer());
     const upsertedPeriods = await saveKpiWorkbook({ name: pathname.split("/").at(-1) ?? "kpi.xls", buffer });
+    invalidate(cacheTags.kpi);
     return Response.json({ ...(await getKpiDashboard()), upsertedPeriods }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Workbook KPI tidak bisa diproses." }, { status: 400 });

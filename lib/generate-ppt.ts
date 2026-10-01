@@ -5,7 +5,9 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { getExportDashboard } from "@/lib/export-dashboard-store";
-import { buildExportAggregates, getNarrative, type Narrative } from "@/lib/ai-narrative";
+import { buildExportAggregates, buildNonExportAggregates, getNarrative } from "@/lib/ai-narrative";
+import { buildExportPptSpec, buildReportPptSpec, type PptSpec } from "@/lib/ppt-spec";
+import type { DashboardSection, WorkbookRole } from "@/lib/monitoring-dashboard-types";
 
 function pythonExe(): string {
   // Use the AutoClaw-bundled Python on Windows, or system python3 on Unix
@@ -17,18 +19,18 @@ function pythonExe(): string {
   return "python3";
 }
 
-function pythonScriptPath(name: string) {
-  return path.join(process.cwd(), "lib", name);
-}
+// Renders a slide spec (lib/ppt-spec.ts) onto the SIG template.
+const RENDER_SCRIPT = path.join(process.cwd(), "lib", "ppt_render.py");
 
-function runPythonGenerator(scriptName: string, inputData: Record<string, unknown>): Promise<Buffer> {
+function renderPpt(spec: PptSpec): Promise<Buffer> {
   const tmpDir = os.tmpdir();
   const outputPath = path.join(tmpDir, `deptcontrol_pptx_${Date.now()}.pptx`);
   const exe = pythonExe();
 
   return new Promise<Buffer>((resolve, reject) => {
-    const proc = spawn(exe, [pythonScriptPath(scriptName), outputPath], {
+    const proc = spawn(exe, [RENDER_SCRIPT, outputPath], {
       stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, PYTHONIOENCODING: "utf-8" },
     });
 
     const outChunks: Buffer[] = [];
@@ -59,18 +61,26 @@ function runPythonGenerator(scriptName: string, inputData: Record<string, unknow
       reject(new Error(`Python (${exe}) not found: ${err.message}`));
     });
 
-    proc.stdin.write(JSON.stringify(inputData));
+    proc.stdin.write(JSON.stringify(spec));
     proc.stdin.end();
   });
 }
 
-export async function generateNonExportPpt(inputData: {
-  role: string;
+export async function generateNonExportPpt({
+  role,
+  filterLabel,
+  section,
+}: {
+  role: WorkbookRole;
   filterLabel: string;
-  section: Record<string, unknown>;
-  narrative?: Narrative | null;
+  section: DashboardSection;
 }): Promise<Buffer> {
-  return runPythonGenerator("generate_ppt.py", inputData);
+  const narrative = await getNarrative(
+    `${role}:${filterLabel}`,
+    buildNonExportAggregates(role, filterLabel, section as unknown as Record<string, unknown>),
+  );
+
+  return renderPpt(buildReportPptSpec(role, filterLabel, section, narrative));
 }
 
 export async function generateExportPpt(theme: "black" | "light" = "black"): Promise<Buffer> {
@@ -83,13 +93,8 @@ export async function generateExportPpt(theme: "black" | "light" = "black"): Pro
   // Narrative is theme-independent, so it caches once and is reused for black/light.
   const narrative = await getNarrative(
     "export",
-    buildExportAggregates(dashboard.records as never[], dashboard.months as never[]),
+    buildExportAggregates(dashboard.records as never[], dashboard.months as never[], dashboard.kpi),
   );
 
-  return runPythonGenerator("generate_export_ppt.py", {
-    records: dashboard.records,
-    months: dashboard.months,
-    theme,
-    narrative,
-  });
+  return renderPpt(buildExportPptSpec(dashboard, narrative, theme));
 }

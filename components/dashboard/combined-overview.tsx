@@ -1,4 +1,4 @@
-import { Calculator, PieChart, ReceiptText, Wallet } from "lucide-react";
+import { CalculateIcon, PieChartIcon, Invoice03Icon, Wallet01Icon } from "@hugeicons/core-free-icons";
 import { CombinedMonthlyBars } from "@/components/dashboard/charts/combined-monthly-bars";
 import { DonutChart } from "@/components/dashboard/charts/donut-chart";
 import { HorizontalBars } from "@/components/dashboard/charts/horizontal-bars";
@@ -36,15 +36,15 @@ export function CombinedOverview({
   const currentPayment = itemByLabel(paymentSection.statusMix, "No Risk")?.share ?? 0;
   const availablePeriods = overviewPeriodLabels(invoice.section, payment.section);
   const kpis = [
-    { title: "Total Outstanding", value: formatCurrency(outstanding, true), icon: ReceiptText, accent: "amber" as const },
-    { title: "Total Payment", value: formatCurrency(paid, true), icon: Wallet, accent: "emerald" as const },
-    { title: "Cash Coverage", value: formatPercent(coverage), icon: PieChart, accent: "cyan" as const },
-    { title: "Net Exposure", value: formatCurrency(exposure, true), icon: Calculator, accent: "amber" as const },
+    { title: "Total Outstanding", value: formatCurrency(outstanding, true), icon: Invoice03Icon, accent: "amber" as const },
+    { title: "Total Payment", value: formatCurrency(paid, true), icon: Wallet01Icon, accent: "emerald" as const },
+    { title: "Cash Coverage", value: formatPercent(coverage), icon: PieChartIcon, accent: "cyan" as const },
+    { title: "Net Exposure", value: formatCurrency(exposure, true), icon: CalculateIcon, accent: "amber" as const },
   ];
 
   return (
-    <section id="overview-dashboard" data-animate-block className="overflow-hidden rounded-lg border border-white/10 bg-[#0b1320] shadow-[0_22px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-[#07111f] p-2.5">
+    <section id="overview-dashboard" data-animate-block className="overflow-hidden rounded-lg border border-[#174D55]/14 bg-[#FFFFFF] shadow-[0_22px_45px_rgba(26,83,92,0.11)]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#174D55]/14 bg-[#F7FFF7] p-2.5">
         <OverviewMonthDropdown
           items={availablePeriods.length > 0 ? availablePeriods : ["Jan 2025"]}
           selected={periodFilters.periodLabels}
@@ -59,7 +59,7 @@ export function CombinedOverview({
         ))}
       </div>
 
-      <div className="grid gap-2.5 p-2.5 pt-0 lg:grid-cols-[0.95fr_0.95fr_1.25fr]">
+      <div className="grid gap-2.5 p-2.5 pt-0 md:grid-cols-2 lg:grid-cols-[0.95fr_0.95fr_1.25fr]">
         <DonutChart
           title="Invoice Aging by Bucket"
           items={invoiceSection.statusMix}
@@ -77,18 +77,18 @@ export function CombinedOverview({
         <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
       </div>
 
-      <div className="grid gap-2.5 p-2.5 pt-0 lg:grid-cols-2">
+      <div className="grid gap-2.5 p-2.5 pt-0 md:grid-cols-2">
         <div>
-          <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#ffd166]">Top Billing Customers</div>
-          <HorizontalBars items={invoiceSection.topCustomers} maxItems={5} />
+          <div className="rounded-t-lg border border-b-0 border-[#174D55]/14 bg-[#FFFFFF] p-2 text-center text-sm font-black uppercase text-[#174D55]">Top Billing Customers</div>
+          <HorizontalBars items={invoiceSection.topCustomers} maxItems={5} tone="coral" />
         </div>
         <div>
-          <div className="rounded-t-lg border border-b-0 border-white/10 bg-[#0c1724] p-2 text-center text-sm font-black uppercase text-[#70f0bf]">Top Payment Customers</div>
+          <div className="rounded-t-lg border border-b-0 border-[#174D55]/14 bg-[#FFFFFF] p-2 text-center text-sm font-black uppercase text-[#174D55]">Top Payment Customers</div>
           <HorizontalBars items={paymentSection.topCustomers} maxItems={5} />
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#07111f] px-3 py-2 text-xs font-semibold text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#174D55]/14 bg-[#F7FFF7] px-3 py-2 text-xs font-semibold text-[#174D55]/90">
         <span>{compactFileName(invoice.file.name)} + {compactFileName(payment.file.name)}</span>
         <span>Invoice {formatNumber(invoice.file.rowCount)} rows - Payment {formatNumber(payment.file.rowCount)} rows</span>
       </div>

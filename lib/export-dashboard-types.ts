@@ -1,3 +1,5 @@
+import type { PackedRows } from "@/lib/packed-rows";
+
 export type ExportDashboardView =
   | "export-overview"
   | "export-rkap"
@@ -70,4 +72,31 @@ export type ExportDashboardPayload = {
   months: ExportStoredMonth[];
   kpi: ExportKpiSummary | null;
   upsertedMonths?: ExportUpsertedMonth[];
+};
+
+/** The record fields the dashboard views read; only these are sent to the browser. */
+export const EXPORT_VIEW_FIELDS = [
+  "periodKey",
+  "periodLabel",
+  "companyCode",
+  "buyer",
+  "vesselName",
+  "product",
+  "destination",
+  "tonnage",
+  "usdValue",
+  "paymentDate",
+  "paymentStatus",
+  "plannedPaymentDate",
+  "agingBucket",
+  "exchangeImpact",
+] as const satisfies readonly (keyof ExportRecord)[];
+
+export type ExportViewRecord = Pick<ExportRecord, (typeof EXPORT_VIEW_FIELDS)[number]>;
+
+export type ExportViewPayload = Omit<ExportDashboardPayload, "records"> & { records: ExportViewRecord[] };
+
+/** Wire format of the export dashboard: view fields only, column-packed (see `lib/packed-rows`). */
+export type ExportDashboardWire = Omit<ExportDashboardPayload, "records"> & {
+  records: PackedRows<ExportViewRecord>;
 };

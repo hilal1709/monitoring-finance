@@ -1,7 +1,9 @@
-import { cn } from "@/lib/utils";
-import { HoverValue } from "@/components/dashboard/charts/chart-primitives";
+"use client";
+
+import { COLORS, GroupedHorizontalBarChart } from "@/components/charts";
+import { EmptyChart } from "@/components/charts/empty-chart";
 import { PeriodModeSelector } from "@/components/dashboard/period-mode-selector";
-import { chartBarWidth, formatTrendValue, periodTrendPoints } from "@/lib/dashboard-data";
+import { formatTrendValue, periodTrendPoints } from "@/lib/dashboard-data";
 import type { PeriodMode } from "@/lib/dashboard-types";
 import type { DashboardSection } from "@/lib/monitoring-dashboard-types";
 
@@ -34,44 +36,33 @@ export function CombinedMonthlyBars({
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-6)
     .map(([key, value]) => ({ key, ...value }));
-  const max = Math.max(...points.flatMap((point) => [Math.abs(point.invoice), Math.abs(point.payment)]), 1);
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-[#0c1724] p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-100">
+    <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-teal">
         <span>Billing vs Payment Trend</span>
         <span className="flex flex-wrap items-center gap-3">
           <PeriodModeSelector value={periodMode} onChange={onPeriodModeChange} />
-          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#facc15]" /> Invoice</span>
-          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 border border-white/70 bg-[#22c55e]" /> Payment</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="size-3 rounded-sm bg-sun" /> Invoice
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="size-3 rounded-sm bg-teal" /> Payment
+          </span>
         </span>
       </div>
       {points.length > 0 ? (
-        points.map((point) => (
-          <div key={point.key} className="grid grid-cols-[64px_1fr] items-center gap-3 text-[11px] font-bold text-slate-100">
-            <span className="truncate text-right">{point.label}</span>
-            <div className="grid gap-1">
-              <div tabIndex={0} title={`Invoice ${point.label}: ${formatTrendValue(point.invoice, periodMode)}`} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
-                <HoverValue text={`Invoice ${point.label}: ${formatTrendValue(point.invoice, periodMode)}`} />
-                <div
-                  className={cn("h-full border", point.invoice < 0 ? "border-[#fecaca] bg-[#dc2626]" : "border-[#fde68a] bg-[#d97706]")}
-                  style={{ width: `${chartBarWidth(point.invoice, max)}%` }}
-                />
-                <span className="chart-value absolute right-1 top-0.5 text-[10px] font-black text-slate-950">{formatTrendValue(point.invoice, periodMode)}</span>
-              </div>
-              <div tabIndex={0} title={`Payment ${point.label}: ${formatTrendValue(point.payment, periodMode)}`} className="group relative h-5 overflow-hidden rounded border border-white/30 bg-white/[0.10] outline-none">
-                <HoverValue text={`Payment ${point.label}: ${formatTrendValue(point.payment, periodMode)}`} />
-                <div
-                  className={cn("h-full border", point.payment < 0 ? "border-[#fecaca] bg-[#dc2626]" : "border-[#bbf7d0] bg-[#16a34a]")}
-                  style={{ width: `${chartBarWidth(point.payment, max)}%` }}
-                />
-                <span className="chart-value absolute right-1 top-0.5 text-[10px] font-black text-slate-950">{formatTrendValue(point.payment, periodMode)}</span>
-              </div>
-            </div>
-          </div>
-        ))
+        <GroupedHorizontalBarChart
+          key={periodMode}
+          labels={points.map((point) => point.label)}
+          series={[
+            { label: "Invoice", data: points.map((point) => point.invoice), color: COLORS.yellow },
+            { label: "Payment", data: points.map((point) => point.payment), color: COLORS.teal },
+          ]}
+          format={(value) => formatTrendValue(value, periodMode)}
+        />
       ) : (
-        <div className="grid min-h-40 place-items-center text-center text-xs font-semibold text-slate-400">Tidak ada data pembanding</div>
+        <EmptyChart text="Tidak ada data pembanding" />
       )}
     </div>
   );

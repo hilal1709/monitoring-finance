@@ -1,4 +1,4 @@
-import { CalendarDays, FileSpreadsheet, ReceiptText, Target, Wallet } from "lucide-react";
+import { Calendar03Icon, Xls01Icon, Invoice03Icon, Target02Icon, Wallet01Icon } from "@hugeicons/core-free-icons";
 import { ChartPanel } from "@/components/export/chart-panel";
 import { ExportKpi } from "@/components/export/export-kpi";
 import { HorizontalBars } from "@/components/export/horizontal-bars";
@@ -6,9 +6,9 @@ import { SourceNotice } from "@/components/export/source-notice";
 import { TrendChart } from "@/components/export/trend-chart";
 import { formatUsd } from "@/lib/export-dashboard-format";
 import { isPaid, rankRecords, total } from "@/lib/export-dashboard-data";
-import type { ExportKpiSummary, ExportRecord } from "@/lib/export-dashboard-types";
+import type { ExportKpiSummary, ExportViewRecord } from "@/lib/export-dashboard-types";
 
-export function ForecastView({ records, kpi }: { records: ExportRecord[]; kpi: ExportKpiSummary | null }) {
+export function ForecastView({ records, kpi }: { records: ExportViewRecord[]; kpi: ExportKpiSummary | null }) {
   const open = records.filter((record) => !isPaid(record));
   const planned = open.filter((record) => record.plannedPaymentDate);
   const plannedByMonth = rankRecords(
@@ -36,17 +36,17 @@ export function ForecastView({ records, kpi }: { records: ExportRecord[]; kpi: E
       {kpi ? (
         <>
           <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <ExportKpi title="Target Penerimaan (KPI 2026)" value={formatUsd(totalPaymentTarget)} icon={Target} />
-            <ExportKpi title="Realisasi Penerimaan" value={formatUsd(totalPaymentActual)} icon={Wallet} accent="emerald" />
-            <ExportKpi title="Sisa Target Penerimaan" value={formatUsd(sisaTargetPenerimaan)} icon={CalendarDays} accent="cyan" />
-            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={ReceiptText} accent="red" />
+            <ExportKpi title="Target Penerimaan (KPI 2026)" value={formatUsd(totalPaymentTarget)} icon={Target02Icon} />
+            <ExportKpi title="Realisasi Penerimaan" value={formatUsd(totalPaymentActual)} icon={Wallet01Icon} accent="emerald" />
+            <ExportKpi title="Sisa Target Penerimaan" value={formatUsd(sisaTargetPenerimaan)} icon={Calendar03Icon} accent="cyan" />
+            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />
           </div>
           <ChartPanel data-animate-card title="Prognosa Penerimaan: Target vs Realisasi Bulanan (USD)">
             <TrendChart
               points={kpiPaymentPoints}
               series={[
-                { key: "paymentTarget", label: "Target", color: "#22d3ee" },
-                { key: "paymentActual", label: "Realisasi", color: "#22c55e" },
+                { key: "paymentTarget", label: "Target", color: "#4ECDC4" },
+                { key: "paymentActual", label: "Realisasi", color: "#174D55" },
               ]}
               valueFormatter={formatUsd}
             />
@@ -56,7 +56,7 @@ export function ForecastView({ records, kpi }: { records: ExportRecord[]; kpi: E
               <HorizontalBars items={rankRecords(open, (record) => record.companyCode, (record) => record.usdValue)} formatValue={formatUsd} />
             </ChartPanel>
             <ChartPanel title="Aging Piutang Terbuka (USD)">
-              <HorizontalBars items={rankRecords(open, (record) => record.agingBucket, (record) => record.usdValue, 8)} formatValue={formatUsd} />
+              <HorizontalBars items={rankRecords(open, (record) => record.agingBucket, (record) => record.usdValue, 8)} formatValue={formatUsd} tone="coral" />
             </ChartPanel>
           </div>
         </>
@@ -64,10 +64,10 @@ export function ForecastView({ records, kpi }: { records: ExportRecord[]; kpi: E
         <>
           <SourceNotice data-animate-card>Workbook tidak memiliki sheet KPI 2026. Prognosa di bawah dihitung dari kolom Rencana Bayar pada sheet detail; target penerimaan tidak tersedia.</SourceNotice>
           <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={ReceiptText} accent="red" />
-            <ExportKpi title="Sudah Ada Rencana Bayar" value={formatUsd(total(planned, (record) => record.usdValue))} icon={CalendarDays} />
-            <ExportKpi title="Belum Ada Rencana Bayar" value={formatUsd(total(open.filter((record) => !record.plannedPaymentDate), (record) => record.usdValue))} icon={Wallet} accent="cyan" />
-            <ExportKpi title="Invoice Terbuka" value={open.length.toLocaleString("id-ID")} icon={FileSpreadsheet} accent="emerald" />
+            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />
+            <ExportKpi title="Sudah Ada Rencana Bayar" value={formatUsd(total(planned, (record) => record.usdValue))} icon={Calendar03Icon} />
+            <ExportKpi title="Belum Ada Rencana Bayar" value={formatUsd(total(open.filter((record) => !record.plannedPaymentDate), (record) => record.usdValue))} icon={Wallet01Icon} accent="cyan" />
+            <ExportKpi title="Invoice Terbuka" value={open.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="emerald" />
           </div>
           <div data-animate-card className="grid gap-2 lg:grid-cols-2">
             <ChartPanel title="Prognosa Penerimaan berdasarkan Rencana Bayar (USD)">

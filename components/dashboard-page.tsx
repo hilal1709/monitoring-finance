@@ -1,101 +1,87 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { Building2, CheckCircle2, Download, Loader2, Menu, MoonStar, PanelLeftClose, PanelLeftOpen, SunMedium, UploadCloud, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Download04Icon, Loading03Icon, Menu01Icon, PanelLeftCloseIcon, PanelLeftOpenIcon, CloudUploadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Logo } from "@/components/brand/logo";
+import { EmptyUploadIllustration } from "@/components/illustrations";
+import { Banner } from "@/components/ui/banner";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { TopProgress } from "@/components/ui/page-loader";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useRevealAnimation } from "@/lib/use-reveal-animation";
-import { CombinedOverview } from "@/components/dashboard/combined-overview";
-import { ExportPptMenu } from "@/components/dashboard/export-ppt-menu";
-import { ReportFrame } from "@/components/dashboard/report-frame";
 import { SidebarNavigation } from "@/components/dashboard/sidebar-navigation";
-import { StoredMonthPanel } from "@/components/dashboard/stored-month-panel";
-import { UploadCard } from "@/components/dashboard/upload-card";
-import ExportDashboard from "@/components/export-dashboard";
-import KpiDashboard from "@/components/kpi-dashboard";
-import { fromPersistedReport, loadedReportsFromPersisted } from "@/lib/dashboard-data";
+import type { KpiPayload } from "@/components/kpi-dashboard";
+import { loadedReportsFromPacked } from "@/lib/dashboard-data";
 import { exportViewConfig, isExportDashboardView, uploadCards } from "@/lib/dashboard-constants";
-import type { DashboardView, FilterKey, LoadedReport, OverviewFilters, PeriodMode, ReportFilters, StoredMonth, ThemeMode } from "@/lib/dashboard-types";
-import type { DashboardSection, PersistedDashboardReport, PersistedDashboardReports, UploadedWorkbookSummary, WorkbookRole } from "@/lib/monitoring-dashboard-types";
-import type { ExportDashboardView } from "@/lib/export-dashboard-types";
+import type { DashboardView, FilterKey, LoadedReport, OverviewFilters, PeriodMode, ReportFilters, StoredMonth } from "@/lib/dashboard-types";
+import type { DashboardPayload, WorkbookRole } from "@/lib/monitoring-dashboard-types";
+import type { ExportDashboardView, ExportDashboardWire } from "@/lib/export-dashboard-types";
+import { readResponsePayload, responseError, uploadWorkbook } from "@/lib/upload-workbook";
 
-let dashboardReportsCache: Partial<Record<WorkbookRole, LoadedReport>> = {};
-let dashboardMonthsCache: Partial<Record<WorkbookRole, StoredMonth[]>> = {};
+// Every route renders exactly one of these views — split them so a page only
+// downloads (and hydrates) the code it actually shows.
+const CombinedOverview = dynamic(() => import("@/components/dashboard/combined-overview").then((module) => module.CombinedOverview));
+const ReportFrame = dynamic(() => import("@/components/dashboard/report-frame").then((module) => module.ReportFrame));
+const ExportDashboard = dynamic(() => import("@/components/export-dashboard"));
+const KpiDashboard = dynamic(() => import("@/components/kpi-dashboard"));
+const ExportPptMenu = dynamic(() => import("@/components/dashboard/export-ppt-menu").then((module) => module.ExportPptMenu));
+const StoredMonthPanel = dynamic(() => import("@/components/dashboard/stored-month-panel").then((module) => module.StoredMonthPanel));
+const UploadCard = dynamic(() => import("@/components/dashboard/upload-card").then((module) => module.UploadCard));
+
 // Module-level so the collapse choice survives client navigation between views.
 let sidebarCollapsedCache = false;
 
-function cacheReports(reports: Partial<Record<WorkbookRole, LoadedReport>>) {
-  dashboardReportsCache = {
-    ...dashboardReportsCache,
-    ...reports,
-  };
-
-  return dashboardReportsCache;
-}
-
-function cacheRoleReport(role: WorkbookRole, report?: LoadedReport) {
-  dashboardReportsCache = { ...dashboardReportsCache };
-
-  if (report) {
-    dashboardReportsCache[role] = report;
-  } else {
-    delete dashboardReportsCache[role];
-  }
-
-  return dashboardReportsCache;
-}
-
-function cacheMonths(months: Partial<Record<WorkbookRole, StoredMonth[]>>) {
-  dashboardMonthsCache = {
-    ...dashboardMonthsCache,
-    ...months,
-  };
-
-  return dashboardMonthsCache;
-}
-
-async function readResponsePayload(response: Response) {
-  const raw = await response.text();
-
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return { raw: raw.slice(0, 500) };
-  }
-}
+type ReportsState = Partial<Record<WorkbookRole, LoadedReport>>;
+type MonthsState = Partial<Record<WorkbookRole, StoredMonth[]>>;
 
 export default function DashboardPage({
   view = "overview",
-  initialReports,
+  initialData,
+  initialExport,
+  initialKpi,
 }: {
   view?: DashboardView;
-  initialReports?: PersistedDashboardReports;
+  /** Server-loaded invoice/payment data (undefined when the server load failed → client fetch). */
+  initialData?: DashboardPayload;
+  initialExport?: ExportDashboardWire;
+  initialKpi?: KpiPayload;
 }) {
-  const [reports, setReports] = useState<Partial<Record<WorkbookRole, LoadedReport>>>(() => {
-    const loadedReports = loadedReportsFromPersisted(initialReports);
-
-    return cacheReports(loadedReports);
-  });
-  const [storedMonths, setStoredMonths] = useState<Partial<Record<WorkbookRole, StoredMonth[]>>>(() => ({ ...dashboardMonthsCache }));
+  const router = useRouter();
+  const [reports, setReports] = useState<ReportsState>(() => loadedReportsFromPacked(initialData?.reports));
+  const [storedMonths, setStoredMonths] = useState<MonthsState>(() => initialData?.months ?? {});
+  const [syncedInitial, setSyncedInitial] = useState(initialData);
   const [errors, setErrors] = useState<Partial<Record<WorkbookRole, string>>>({});
-  const [successMessages, setSuccessMessages] = useState<Partial<Record<WorkbookRole, string>>>({});
   const [filters, setFilters] = useState<Record<WorkbookRole, ReportFilters>>({ invoice: {}, payment: {} });
   const [overviewFilters, setOverviewFilters] = useState<OverviewFilters>({ periodLabels: [] });
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mom");
-    const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [loadingRole, setLoadingRole] = useState<WorkbookRole | null>(null);
   const [deletingMonthKey, setDeletingMonthKey] = useState<string | null>(null);
-  const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(!initialReports && !isExportDashboardView(view));
+  const needsDashboardData = view === "overview" || view === "invoice" || view === "payment";
+  const [isLoadingStoredReports, setIsLoadingStoredReports] = useState(needsDashboardData && !initialData);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(sidebarCollapsedCache);
   const invoiceInputRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const confirm = useConfirm();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Fresh server data (e.g. after router.refresh()) replaces local state.
+  if (initialData !== syncedInitial) {
+    setSyncedInitial(initialData);
+    if (initialData) {
+      setReports(loadedReportsFromPacked(initialData.reports));
+      setStoredMonths(initialData.months);
+    }
+  }
   const hasAnyReport = Boolean(reports.invoice || reports.payment);
   const activeRole = view === "invoice" || view === "payment" ? view : null;
   const exportSection = isExportDashboardView(view) ? exportViewConfig[view] : null;
@@ -116,17 +102,14 @@ export default function DashboardPage({
     Boolean(reports.payment),
   ]);
 
-  useEffect(() => {
-    const storedTheme = window.localStorage.getItem("deptcontrol-theme");
-    const nextTheme: ThemeMode = storedTheme === "light" ? "light" : "dark";
-    setThemeMode(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-  }, []);
 
+  // Header gains depth once the page scrolls under it (styled in globals.css).
   useEffect(() => {
-    document.documentElement.dataset.theme = themeMode;
-    window.localStorage.setItem("deptcontrol-theme", themeMode);
-  }, [themeMode]);
+    const update = () => setIsScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("deptcontrol-sidebar");
@@ -208,27 +191,40 @@ export default function DashboardPage({
     setOverviewFilters({ periodLabels: [] });
   }
 
-  function toggleThemeMode() {
-    setThemeMode((current) => (current === "dark" ? "light" : "dark"));
+
+  // Fetch instead of a plain <a download> link: a failed generation returns a
+  // JSON error, which the browser would otherwise save as the "pptx".
+  async function downloadPptFrom(url: string, fallbackName: string) {
+    notify.info("Menyiapkan PPT", "Proses generate bisa memakan waktu beberapa detik.");
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        const payload = await readResponsePayload(response);
+        throw new Error(responseError(response, payload, "Gagal generate PPT."));
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = match ? decodeURIComponent(match[1]) : fallbackName;
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      notify.error("Download PPT gagal", error instanceof Error ? error.message : "Gagal generate PPT.");
+    }
   }
 
   function downloadPpt(role: WorkbookRole, customerType: "all" | "external" | "group") {
-    const url = `/api/dashboard/ppt?role=${role}&customerType=${customerType}`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    void downloadPptFrom(`/api/dashboard/ppt?role=${role}&customerType=${customerType}`, `DeptControl_${role}.pptx`);
   }
 
   function downloadExportPpt(pptTheme: "black" | "light") {
-    const a = document.createElement("a");
-    a.href = `/api/dashboard/ppt?type=export&theme=${pptTheme}`;
-    a.download = "";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    void downloadPptFrom(`/api/dashboard/ppt?type=export&theme=${pptTheme}`, `DeptControl_Ekspor_${pptTheme}.pptx`);
   }
 
   useEffect(() => {
@@ -243,30 +239,36 @@ export default function DashboardPage({
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Drawer is hidden from lg up; close it so the scroll lock doesn't linger.
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setIsMobileNavOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+
     return () => {
       document.body.style.overflow = originalOverflow;
+      desktop.removeEventListener("change", closeOnDesktop);
     };
   }, [isMobileNavOpen]);
 
+  function applyDashboardPayload(payload: Record<string, unknown>, role?: WorkbookRole) {
+    const dashboard = payload as unknown as DashboardPayload;
+    const loaded = loadedReportsFromPacked(dashboard.reports);
+
+    setReports((current) => {
+      if (!role) return { ...current, ...loaded };
+      const next = { ...current };
+      if (loaded[role]) next[role] = loaded[role];
+      else delete next[role];
+      return next;
+    });
+    setStoredMonths((current) => ({ ...current, ...dashboard.months }));
+  }
+
+  // Fallback when the server render couldn't load the data.
   useEffect(() => {
-    if (exportSection) {
-      setIsLoadingStoredReports(false);
-      return;
-    }
-
-    if (initialReports) {
-      setReports(loadedReportsFromPersisted(initialReports));
-      setIsLoadingStoredReports(false);
-      return;
-    }
-
-    const hasCachedRouteData = activeRole
-      ? Boolean(dashboardReportsCache[activeRole] && dashboardMonthsCache[activeRole])
-      : Boolean(dashboardReportsCache.invoice && dashboardReportsCache.payment && dashboardMonthsCache.invoice && dashboardMonthsCache.payment);
-
-    if (hasCachedRouteData) {
-      setReports({ ...dashboardReportsCache });
-      setStoredMonths({ ...dashboardMonthsCache });
+    if (!needsDashboardData || initialData) {
       setIsLoadingStoredReports(false);
       return;
     }
@@ -280,28 +282,11 @@ export default function DashboardPage({
         const response = await fetch(activeRole ? `/api/dashboard?role=${activeRole}` : "/api/dashboard");
         const payload = await readResponsePayload(response);
 
-        if (!payload || typeof payload !== "object") {
-          throw new Error("Data upload tersimpan tidak bisa dimuat.");
+        if (!response.ok || !payload) {
+          throw new Error(responseError(response, payload, "Data upload tersimpan tidak bisa dimuat."));
         }
 
-        if (!response.ok) {
-          throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Data upload tersimpan tidak bisa dimuat.");
-        }
-
-        if (cancelled) {
-          return;
-        }
-
-        const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
-        const months = (payload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
-
-        const loadedReports = loadedReportsFromPersisted(storedReports);
-
-        setReports((current) => ({
-          ...current,
-          ...cacheReports(loadedReports),
-        }));
-        setStoredMonths({ ...cacheMonths(months) });
+        if (!cancelled) applyDashboardPayload(payload);
       } catch (error) {
         if (!cancelled && activeRole) {
           setErrors((current) => ({
@@ -321,7 +306,7 @@ export default function DashboardPage({
     return () => {
       cancelled = true;
     };
-  }, [activeRole, exportSection, initialReports]);
+  }, [activeRole, initialData, needsDashboardData]);
 
   async function uploadRole(role: WorkbookRole, fileList: FileList | null) {
     const file = fileList?.[0];
@@ -332,76 +317,32 @@ export default function DashboardPage({
 
     setLoadingRole(role);
     setErrors((current) => ({ ...current, [role]: undefined }));
-    setSuccessMessages((current) => ({ ...current, [role]: undefined }));
 
     try {
-      const formData = new FormData();
-      formData.append("role", role);
-      formData.append("files", file);
-
-      const response = await fetch("/api/dashboard", {
-        method: "POST",
-        body: formData,
+      // One round trip: the API stores the workbook and answers with the refreshed dashboard.
+      const response = await uploadWorkbook({
+        endpoint: "/api/dashboard",
+        file,
+        fileField: "files",
+        blobPrefix: `dashboard/${role}`,
+        fields: { role },
       });
       const payload = await readResponsePayload(response);
 
-      if (!payload || typeof payload !== "object") {
-        throw new Error("Workbook tidak bisa diproses.");
+      if (!response.ok || !payload) {
+        throw new Error(responseError(response, payload, "Workbook tidak bisa diproses."));
       }
 
-      if (!response.ok) {
-        throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Workbook tidak bisa diproses.");
-      }
-
-      setSuccessMessages((current) => ({
-        ...current,
-        [role]: `Upload ${role === "invoice" ? "Invoice" : "Payment"} berhasil.`,
-      }));
-
-      void (async () => {
-        try {
-          const refreshResponse = await fetch(`/api/dashboard?role=${role}`);
-          const refreshPayload = await readResponsePayload(refreshResponse);
-
-          if (!refreshPayload || typeof refreshPayload !== "object") {
-            throw new Error("Dashboard setelah upload tidak bisa dimuat.");
-          }
-
-          if (!refreshResponse.ok) {
-            throw new Error((refreshPayload.error as string | undefined) ?? (refreshPayload.raw as string | undefined) ?? "Dashboard setelah upload tidak bisa dimuat.");
-          }
-
-          const storedReports = (refreshPayload.reports ?? {}) as PersistedDashboardReports;
-          const months = (refreshPayload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
-          const reportsFromApi = loadedReportsFromPersisted(storedReports);
-          const loadedReport = reportsFromApi[role];
-
-          if (!loadedReport) {
-            throw new Error("Dashboard setelah upload tidak bisa dimuat.");
-          }
-
-          cacheReports({ [role]: loadedReport });
-          setReports((current) => ({
-            ...current,
-            [role]: loadedReport,
-          }));
-          setStoredMonths({ ...cacheMonths(months) });
-          clearFilters(role);
-          setOverviewFilters({ periodLabels: [] });
-        } catch (error) {
-          setSuccessMessages((current) => ({ ...current, [role]: undefined }));
-          setErrors((current) => ({
-            ...current,
-            [role]: error instanceof Error ? error.message : "Dashboard setelah upload tidak bisa dimuat.",
-          }));
-        }
-      })();
+      applyDashboardPayload(payload, role);
+      clearFilters(role);
+      setOverviewFilters({ periodLabels: [] });
+      notify.success(`Upload ${role === "invoice" ? "Invoice" : "Payment"} berhasil`, file.name);
+      // Drop client-cached pages (e.g. the overview) so they pick up the new data.
+      router.refresh();
     } catch (error) {
-      setSuccessMessages((current) => ({ ...current, [role]: undefined }));
-      setErrors((current) => ({
-        ...current,
-        [role]: error instanceof Error ? error.message : "Workbook tidak bisa diproses.",
-      }));
+      const message = error instanceof Error ? error.message : "Workbook tidak bisa diproses.";
+      setErrors((current) => ({ ...current, [role]: message }));
+      notify.error("Upload gagal", message);
     } finally {
       setLoadingRole(null);
 
@@ -416,7 +357,11 @@ export default function DashboardPage({
   }
 
   async function deleteStoredMonth(role: WorkbookRole, month: StoredMonth) {
-    const confirmed = window.confirm(`Hapus data ${month.label} untuk ${role === "invoice" ? "Invoice" : "Payment"}?`);
+    const confirmed = await confirm({
+      title: `Hapus data ${month.label}?`,
+      description: `Data ${role === "invoice" ? "Invoice" : "Payment"} bulan ${month.label} akan dihapus dari dashboard. Tindakan ini tidak bisa dibatalkan.`,
+      confirmLabel: "Hapus data",
+    });
 
     if (!confirmed) {
       return;
@@ -425,7 +370,6 @@ export default function DashboardPage({
     const key = `${role}:${month.periodKey}`;
     setDeletingMonthKey(key);
     setErrors((current) => ({ ...current, [role]: undefined }));
-    setSuccessMessages((current) => ({ ...current, [role]: undefined }));
 
     try {
       const response = await fetch(`/api/dashboard?role=${role}&periodKey=${encodeURIComponent(month.periodKey)}`, {
@@ -433,40 +377,19 @@ export default function DashboardPage({
       });
       const payload = await readResponsePayload(response);
 
-      if (!payload || typeof payload !== "object") {
-        throw new Error("Data bulan tidak bisa dihapus.");
+      if (!response.ok || !payload) {
+        throw new Error(responseError(response, payload, "Data bulan tidak bisa dihapus."));
       }
 
-      if (!response.ok) {
-        throw new Error((payload.error as string | undefined) ?? (payload.raw as string | undefined) ?? "Data bulan tidak bisa dihapus.");
-      }
-
-      const storedReports = (payload.reports ?? {}) as PersistedDashboardReports;
-      const months = (payload.months ?? {}) as Partial<Record<WorkbookRole, StoredMonth[]>>;
-      const nextReport = loadedReportsFromPersisted(storedReports)[role];
-
-      cacheRoleReport(role, nextReport);
-      cacheMonths(months);
-
-      setReports((current) => {
-        const next = { ...current };
-
-        if (nextReport) {
-          next[role] = nextReport;
-        } else {
-          delete next[role];
-        }
-
-        return next;
-      });
-      setStoredMonths({ ...dashboardMonthsCache });
+      applyDashboardPayload(payload, role);
       clearFilters(role);
       setOverviewFilters({ periodLabels: [] });
+      router.refresh();
+      notify.success("Data dihapus", `${role === "invoice" ? "Invoice" : "Payment"} ${month.label} sudah dihapus.`);
     } catch (error) {
-      setErrors((current) => ({
-        ...current,
-        [role]: error instanceof Error ? error.message : "Data bulan tidak bisa dihapus.",
-      }));
+      const message = error instanceof Error ? error.message : "Data bulan tidak bisa dihapus.";
+      setErrors((current) => ({ ...current, [role]: message }));
+      notify.error("Gagal menghapus", message);
     } finally {
       setDeletingMonthKey(null);
     }
@@ -474,9 +397,11 @@ export default function DashboardPage({
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
+      <TopProgress active={loadingRole !== null || deletingMonthKey !== null || isLoadingStoredReports} />
       <input
         ref={invoiceInputRef}
         type="file"
+        aria-label="Pilih workbook invoice"
         accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="hidden"
         onChange={(event) => void uploadRole("invoice", event.target.files)}
@@ -484,33 +409,27 @@ export default function DashboardPage({
       <input
         ref={paymentInputRef}
         type="file"
+        aria-label="Pilih workbook payment"
         accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="hidden"
         onChange={(event) => void uploadRole("payment", event.target.files)}
       />
 
       {isMobileNavOpen ? (
-        <div aria-label="Mobile navigation" aria-modal="true" className="fixed inset-0 z-50 md:hidden" role="dialog">
-          <button aria-label="Close navigation" className="absolute inset-0 bg-black/60" type="button" onClick={() => setIsMobileNavOpen(false)} />
-          <aside className="relative flex h-full w-80 max-w-[88vw] flex-col border-r border-white/10 bg-[#0c1724] p-5 shadow-2xl">
+        <div aria-label="Mobile navigation" aria-modal="true" className="fixed inset-0 z-50 lg:hidden" role="dialog">
+          <button aria-label="Close navigation" className="absolute inset-0 bg-teal/40 backdrop-blur-sm animate-in fade-in duration-300" type="button" onClick={() => setIsMobileNavOpen(false)} />
+          <aside className="relative flex h-full w-80 max-w-[88vw] flex-col bg-[#174D55] p-5 shadow-2xl animate-in slide-in-from-left duration-300 ease-out">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#ffd166] text-[#211600]">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-base font-semibold leading-tight tracking-tight text-white">Commercial Finance 2</h1>
-                </div>
-              </div>
+              <Logo onDark />
               <Button
                 aria-label="Close navigation"
-                className="shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                className="shrink-0 rounded-lg border border-[#F7FFF7]/20 bg-[#F7FFF7]/10 text-[#F7FFF7] hover:bg-[#F7FFF7]/20"
                 size="icon"
                 type="button"
                 variant="secondary"
                 onClick={() => setIsMobileNavOpen(false)}
               >
-                <X className="h-4 w-4" />
+                <Icon icon={Cancel01Icon} className="h-4 w-4" />
               </Button>
             </div>
 
@@ -522,25 +441,20 @@ export default function DashboardPage({
         </div>
       ) : null}
 
-      <aside className={cn("fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-white/10 bg-[#0c1724] transition-transform duration-300 ease-in-out md:block", isSidebarCollapsed ? "md:-translate-x-full" : "md:translate-x-0")}>
+      <aside className={cn("fixed left-0 top-0 z-40 hidden h-screen w-64 bg-[#174D55] transition-transform duration-300 ease-in-out lg:block", isSidebarCollapsed ? "lg:-translate-x-full" : "lg:translate-x-0")}>
         <div className="flex h-full flex-col p-6">
           <div className="mb-10 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#ffd166] text-[#211600]">
-                <Building2 className="h-5 w-5" />
-              </div>
-              <h1 className="text-base font-semibold leading-tight tracking-tight text-white">Commercial Finance 2</h1>
-            </div>
+            <Logo onDark />
             <Button
               aria-label="Tutup sidebar"
               title="Tutup sidebar"
-              className="shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="shrink-0 rounded-lg border border-[#F7FFF7]/20 bg-[#F7FFF7]/10 text-[#F7FFF7] hover:bg-[#F7FFF7]/20"
               size="icon"
               type="button"
               variant="secondary"
               onClick={toggleSidebar}
             >
-              <PanelLeftClose className="h-4 w-4" />
+              <Icon icon={PanelLeftCloseIcon} className="h-4 w-4" />
             </Button>
           </div>
 
@@ -550,34 +464,34 @@ export default function DashboardPage({
         </div>
       </aside>
 
-      <header className={cn("fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between gap-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--app-bg)_92%,transparent)] px-4 backdrop-blur transition-[width] duration-300 ease-in-out md:px-8", isSidebarCollapsed ? "md:w-full" : "md:w-[calc(100%-16rem)]")}>
+      <header data-scrolled={isScrolled} className={cn("app-header fixed right-0 top-0 z-30 flex min-h-20 w-full items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 transition-[width] duration-300 ease-in-out sm:px-6 lg:px-8", isSidebarCollapsed ? "lg:w-full" : "lg:w-[calc(100%-16rem)]")}>
         <div className="flex min-w-0 items-center gap-3">
           {isSidebarCollapsed ? (
             <Button
               aria-label="Buka sidebar"
               title="Buka sidebar"
-              className="hidden shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 md:inline-flex"
+              className="hidden shrink-0 lg:inline-flex"
               size="icon"
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={toggleSidebar}
             >
-              <PanelLeftOpen className="h-4 w-4" />
+              <Icon icon={PanelLeftOpenIcon} className="h-4 w-4" />
             </Button>
           ) : null}
           <Button
             aria-expanded={isMobileNavOpen}
             aria-label="Open navigation"
-            className="shrink-0 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 md:hidden"
+            className="shrink-0 lg:hidden"
             size="icon"
             type="button"
-            variant="secondary"
+            variant="outline"
             onClick={() => setIsMobileNavOpen(true)}
           >
-            <Menu className="h-4 w-4" />
+            <Icon icon={Menu01Icon} className="h-4 w-4" />
           </Button>
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-semibold text-white md:text-2xl">{pageTitle}</h2>
+            <h1 className="truncate text-xl font-semibold text-[#174D55] md:text-2xl">{pageTitle}</h1>
           </div>
         </div>
 
@@ -590,42 +504,26 @@ export default function DashboardPage({
                 type="button"
                 onClick={() => downloadPpt(activeRole, "group")}
                 disabled={!reports[activeRole]}
-                className="rounded-lg border border-[#fbbf24]/50 bg-[#fbbf24]/10 text-[#fde68a] hover:bg-[#fbbf24]/20"
+                variant="accent"
               >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">PPT NonEkspor</span>
+                <Icon icon={Download04Icon} className="h-4 w-4" />
+                <span className="sr-only sm:not-sr-only">PPT NonEkspor</span>
               </Button>
-              <Button
-                type="button"
-                onClick={() => openWorkbookPicker(activeRole)}
-                disabled={loadingRole === activeRole}
-                className="rounded-lg bg-[#ffd166] text-[#211600] hover:bg-[#ffe29a]"
-              >
-                {loadingRole === activeRole ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                <span className="hidden sm:inline">Upload</span>
-              </Button>
+              <MagneticButton type="button" onClick={() => openWorkbookPicker(activeRole)} disabled={loadingRole === activeRole}>
+                {loadingRole === activeRole ? <Icon icon={Loading03Icon} className="animate-spin" /> : <Icon icon={CloudUploadIcon} />}
+                <span className="sr-only sm:not-sr-only">{loadingRole === activeRole ? "Mengunggah…" : "Upload"}</span>
+              </MagneticButton>
             </>
           ) : null}
-          <div className="hidden shrink-0 items-center gap-2 md:flex">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={toggleThemeMode}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--app-fg)] hover:bg-[var(--surface-4)]"
-            >
-              {themeMode === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
-              {themeMode === "dark" ? "Light" : "Dark"}
-            </Button>
-          </div>
         </div>
       </header>
 
-      <main className={cn("ml-0 min-h-screen px-4 pb-4 pt-24 transition-[margin] duration-300 ease-in-out md:px-8", isSidebarCollapsed ? "md:ml-0" : "md:ml-64")}>
+      <main className={cn("ml-0 min-h-screen px-4 pb-4 pt-24 transition-[margin] duration-300 ease-in-out sm:px-6 lg:px-8", isSidebarCollapsed ? "lg:ml-0" : "lg:ml-64")}>
         <div ref={contentRef} className="mx-auto max-w-[1500px] space-y-3">
-          {exportSection ? <ExportDashboard view={view as ExportDashboardView} /> : null}
-          {isKpiView ? <KpiDashboard embedded metricIndex={view === "kpi-timely" ? 1 : 0} /> : null}
+          {exportSection ? <ExportDashboard view={view as ExportDashboardView} initialData={initialExport} /> : null}
+          {isKpiView ? <KpiDashboard embedded metricIndex={view === "kpi-timely" ? 1 : 0} initialData={initialKpi} /> : null}
 
-          {activeRole && !reports[activeRole] ? (
+          {activeRole && !reports[activeRole] && !isLoadingStoredReports ? (
             <section id="upload" className="grid gap-4 lg:grid-cols-1">
               {activeUploadCards.map((card) => (
                 <UploadCard
@@ -642,78 +540,61 @@ export default function DashboardPage({
           ) : null}
 
           {activeRole && reports[activeRole] && errors[activeRole] ? (
-            <p className="rounded-lg border border-[#ff9f8e]/25 bg-[#ff9f8e]/10 p-3 text-sm text-[#ffb4a6]">{errors[activeRole]}</p>
-          ) : null}
-
-          {activeRole && reports[activeRole] && successMessages[activeRole] ? (
-            <p className="flex items-center gap-2 rounded-lg border border-[#70f0bf]/25 bg-[#70f0bf]/10 p-3 text-sm text-[#70f0bf]">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              {successMessages[activeRole]}
-            </p>
+            <Banner tone="danger" title="Terjadi kendala" dismissible>
+              {errors[activeRole]}
+            </Banner>
           ) : null}
 
           {isLoadingStoredReports ? (
-            <Card data-animate-block className="border-white/10 bg-[#0c1724]/80">
-              <CardContent className="flex items-center gap-3 p-5 text-sm text-slate-300">
-                <Loader2 className="h-4 w-4 animate-spin text-[#ffd166]" />
-                Memuat upload terakhir...
-              </CardContent>
-            </Card>
+            <div data-animate-block className="space-y-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-teal">
+                <Icon icon={Loading03Icon} className="animate-spin text-turquoise" />
+                Memuat upload terakhir…
+              </p>
+              <DashboardSkeleton />
+            </div>
           ) : null}
 
           {activeRole && !hasAnyReport && !isLoadingStoredReports ? (
-            <Card data-animate-block className="border-white/10 bg-[#0c1724]/80">
-              <CardContent className="grid gap-5 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <Card data-animate-block className="overflow-hidden border-border bg-card">
+              <CardContent className="grid gap-5 p-4 sm:p-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#ffd166]">Separated Reports</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-white">Upload file {activeRole === "invoice" ? "invoice" : "payment"}</h2>
-                  <p className="mt-3 leading-7 text-slate-300">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#174D55]">Separated Reports</p>
+                  <h2 className="mt-2 text-2xl font-bold sm:text-3xl tracking-tight text-teal">Upload file {activeRole === "invoice" ? "invoice" : "payment"}</h2>
+                  <p className="mt-3 leading-7 text-[#174D55]/90">
                     Dashboard {activeRole === "invoice" ? "Invoice Report Monitoring" : "Payment Report Monitoring"} langsung muncul setelah file diunggah.
                   </p>
                 </div>
-                <div className="grid gap-3">
-                  <div className="min-h-44 rounded-lg border border-white/10 bg-[#07111f] p-3">
-                    <div className="rounded-md border border-white/10 bg-[#0c1724] p-2 text-center text-lg font-black text-[#ffd166]">{activeRole === "invoice" ? "INVOICE REPORT" : "PAYMENT REPORT"}</div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="h-16 rounded-md border border-[#ffd166]/25 bg-[#ffd166]/10" />
-                      <div className="h-16 rounded-md border border-[#7dd3fc]/25 bg-[#7dd3fc]/10" />
-                      <div className="h-24 rounded-md border border-white/10 bg-white/[0.04]" />
-                      <div className="h-24 rounded-full border border-[#70f0bf]/25 bg-[#70f0bf]/10" />
-                    </div>
-                  </div>
+                <div className="grid place-items-center rounded-xl bg-[linear-gradient(135deg,rgba(78,205,196,0.18),rgba(255,230,109,0.22))] p-6">
+                  <EmptyUploadIllustration className="h-40" />
+                  <MagneticButton type="button" className="mt-4" onClick={() => openWorkbookPicker(activeRole)}>
+                    <Icon icon={CloudUploadIcon} />
+                    Pilih file {activeRole === "invoice" ? "invoice" : "payment"}
+                  </MagneticButton>
                 </div>
               </CardContent>
             </Card>
           ) : null}
 
           {isNonExportOverview && !overviewReady && !isLoadingStoredReports ? (
-            <Card data-animate-block className="border-white/10 bg-[#0c1724]/80">
-              <CardContent className="grid gap-5 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <Card data-animate-block className="overflow-hidden border-border bg-card">
+              <CardContent className="grid gap-5 p-4 sm:p-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#ffd166]">Combined Overview</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-white">Upload invoice dan payment</h2>
-                  <p className="mt-3 leading-7 text-slate-300">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#174D55]">Combined Overview</p>
+                  <h2 className="mt-2 text-2xl font-bold sm:text-3xl tracking-tight text-teal">Upload invoice dan payment</h2>
+                  <p className="mt-3 leading-7 text-[#174D55]/90">
                     Setelah kedua file masuk, overview menggabungkan outstanding, payment, exposure, aging, risk, dan trend bulanan.
                   </p>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className={cn("min-h-44 rounded-lg border p-3", reports.invoice ? "border-[#70f0bf]/40 bg-[#70f0bf]/10" : "border-white/10 bg-[#07111f]")}>
-                    <div className="rounded-md border border-white/10 bg-[#0c1724] p-2 text-center text-lg font-black text-[#ffd166]">INVOICE SOURCE</div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="h-16 rounded-md border border-[#ffd166]/25 bg-[#ffd166]/10" />
-                      <div className="h-16 rounded-md border border-[#7dd3fc]/25 bg-[#7dd3fc]/10" />
-                      <div className="h-24 rounded-md border border-white/10 bg-white/[0.04]" />
-                      <div className="h-24 rounded-full border border-[#70f0bf]/25 bg-[#70f0bf]/10" />
-                    </div>
-                  </div>
-                  <div className={cn("min-h-44 rounded-lg border p-3", reports.payment ? "border-[#70f0bf]/40 bg-[#70f0bf]/10" : "border-white/10 bg-[#07111f]")}>
-                    <div className="rounded-md border border-white/10 bg-[#0c1724] p-2 text-center text-lg font-black text-[#70f0bf]">PAYMENT SOURCE</div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="h-16 rounded-md border border-[#70f0bf]/25 bg-[#70f0bf]/10" />
-                      <div className="h-16 rounded-md border border-[#7dd3fc]/25 bg-[#7dd3fc]/10" />
-                      <div className="h-24 rounded-full border border-[#94a3b8]/25 bg-[#94a3b8]/10" />
-                      <div className="h-24 rounded-md border border-white/10 bg-white/[0.04]" />
-                    </div>
+                <div className="grid place-items-center gap-4 rounded-xl bg-[linear-gradient(135deg,rgba(78,205,196,0.18),rgba(255,230,109,0.22))] p-6">
+                  <EmptyUploadIllustration className="h-40" />
+                  <div className="flex flex-wrap justify-center gap-2 text-xs font-bold">
+                    {(["invoice", "payment"] as const).map((role) => (
+                      <span key={role} className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5", reports[role] ? "bg-teal text-mint" : "bg-white text-teal ring-1 ring-teal/15")}>
+                        <span className={cn("size-2 rounded-full", reports[role] ? "bg-turquoise" : "bg-coral")} />
+                        {role === "invoice" ? "Invoice" : "Payment"} {reports[role] ? "siap" : "belum ada"}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </CardContent>

@@ -15,10 +15,10 @@ export function PaymentMovementSummary({ summary }: { summary: ReturnType<typeof
         const positive = item.value !== null && item.value >= 0;
 
         return (
-          <div key={item.label} title={`Latest ${summary.label}`} className="rounded-lg border border-white/25 bg-[#0c1724] px-2 py-1.5">
+          <div key={item.label} title={`Latest ${summary.label}`} className="rounded-lg border border-[#174D55]/30 bg-[#FFFFFF] px-2 py-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-300">{item.label}</span>
-              <span className={cn("text-base font-black", positive ? "text-[#4ade80]" : "text-[#f87171]")}>{formatDeltaPercent(item.value)}</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[#174D55]/90">{item.label}</span>
+              <span className={cn("text-base font-black", positive ? "text-[#174D55]" : "text-coral-ink")}>{formatDeltaPercent(item.value)}</span>
             </div>
           </div>
         );

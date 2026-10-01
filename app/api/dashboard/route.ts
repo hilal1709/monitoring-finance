@@ -1,24 +1,26 @@
-import {
-  deleteMonthRecords,
-  getAllDashboardReports,
-  saveDashboardUploadByMonth,
-} from "@/lib/dashboard-store";
+import { cacheTags, getCachedDashboard, invalidate } from "@/lib/data-cache";
+import { deleteMonthRecords, saveDashboardUploadByMonth } from "@/lib/dashboard-store";
 import type { WorkbookRole } from "@/lib/monitoring-dashboard-types";
+import { readUploadedWorkbook } from "@/lib/workbook-upload";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function parseRole(value: FormDataEntryValue | string | null): WorkbookRole | undefined {
+function parseRole(value: FormDataEntryValue | string | null | undefined): WorkbookRole | undefined {
   return value === "invoice" || value === "payment" ? value : undefined;
+}
+
+function rolesFor(role?: WorkbookRole): WorkbookRole[] {
+  return role ? [role] : ["invoice", "payment"];
 }
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const role = parseRole(searchParams.get("role"));
-    const dashboard = await getAllDashboardReports(role);
+    const role = parseRole(new URL(request.url).searchParams.get("role"));
 
-    return Response.json(dashboard);
+    return Response.json(await getCachedDashboard(rolesFor(role)), {
+      headers: { "Cache-Control": "private, no-cache" },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Data upload tidak bisa diambil dari database.";
 
@@ -26,45 +28,32 @@ export async function GET(request: Request) {
   }
 }
 
+// Accepts the workbook as multipart form data or as a Vercel Blob pathname
+// (large files), stores it, and answers with the refreshed dashboard so the
+// client doesn't need a second round trip.
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const files = formData
-      .getAll("files")
-      .filter((item): item is File => item instanceof File && item.size > 0);
-    const role = parseRole(formData.get("role"));
+    const workbook = await readUploadedWorkbook(request, "files");
+
+    if (!workbook) {
+      return Response.json({ error: "Upload minimal satu workbook Excel." }, { status: 400 });
+    }
+
+    const role = parseRole(workbook.fields.role);
 
     if (!role) {
-      return Response.json(
-        { error: "Tipe upload harus invoice atau payment." },
-        { status: 400 },
-      );
+      await workbook.cleanup();
+      return Response.json({ error: "Tipe upload harus invoice atau payment." }, { status: 400 });
     }
 
-    if (files.length < 1) {
-      return Response.json(
-        { error: "Upload minimal satu workbook Excel." },
-        { status: 400 },
-      );
+    try {
+      const { upsertedMonths } = await saveDashboardUploadByMonth(role, workbook);
+      invalidate(cacheTags.dashboard(role));
+
+      return Response.json({ upsertedMonths, ...(await getCachedDashboard([role])) });
+    } finally {
+      await workbook.cleanup();
     }
-
-    const workbooks = await Promise.all(
-      files.map(async (file) => ({
-        name: file.name,
-        buffer: Buffer.from(await file.arrayBuffer()),
-      })),
-    );
-
-    const upsertedMonths: { periodKey: string; rowCount: number }[] = [];
-
-    for (const workbook of workbooks) {
-      const result = await saveDashboardUploadByMonth(role, workbook);
-      upsertedMonths.push(...result.upsertedMonths);
-    }
-
-    return Response.json({
-      upsertedMonths,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workbook tidak bisa diproses.";
 
@@ -79,20 +68,13 @@ export async function DELETE(request: Request) {
     const periodKey = searchParams.get("periodKey");
 
     if (!role || !periodKey) {
-      return Response.json(
-        { error: "Role dan periode bulan wajib diisi." },
-        { status: 400 },
-      );
+      return Response.json({ error: "Role dan periode bulan wajib diisi." }, { status: 400 });
     }
 
     const result = await deleteMonthRecords(role, periodKey);
-    const dashboard = await getAllDashboardReports(role);
+    invalidate(cacheTags.dashboard(role));
 
-    return Response.json({
-      deleted: result.deleted,
-      reports: dashboard.reports,
-      months: dashboard.months,
-    });
+    return Response.json({ deleted: result.deleted, ...(await getCachedDashboard([role])) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Data bulan tidak bisa dihapus.";
 

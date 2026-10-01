@@ -1,3 +1,5 @@
+import type { PackedRows } from "@/lib/packed-rows";
+
 export type WorkbookRole = "invoice" | "payment";
 
 export type RankedItem = {
@@ -29,6 +31,8 @@ export type DashboardRecord = {
   periodKey: string | null;
   periodLabel: string | null;
   periodSort: number | null;
+  /** Number of source rows merged into this record (rows are aggregated server-side). Defaults to 1. */
+  count?: number;
 };
 
 export type DashboardSection = {
@@ -81,3 +85,29 @@ export type PersistedDashboardReport = {
 };
 
 export type PersistedDashboardReports = Partial<Record<WorkbookRole, PersistedDashboardReport>>;
+
+/** Wire format: only the (aggregated, column-packed) records travel; sections are rebuilt on the client. */
+export type PackedDashboardReport = {
+  role: WorkbookRole;
+  generatedAt: string;
+  file: UploadedWorkbookSummary;
+  /** `periodLabel`/`periodSort` are derived from `periodKey` on the client. */
+  records: PackedRows<DashboardWireRecord>;
+};
+
+export type DashboardWireRecord = Omit<DashboardRecord, "periodLabel" | "periodSort">;
+
+export type PackedDashboardReports = Partial<Record<WorkbookRole, PackedDashboardReport>>;
+
+export type DashboardMonthMeta = {
+  periodKey: string;
+  label: string;
+  rowCount: number;
+  totalAmount: number;
+  uploadedAt: string;
+};
+
+export type DashboardPayload = {
+  reports: PackedDashboardReports;
+  months: Partial<Record<WorkbookRole, DashboardMonthMeta[]>>;
+};

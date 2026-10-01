@@ -12,7 +12,6 @@ export type ReportFilters = Partial<Record<FilterKey, string[]>>;
 export type OverviewFilters = {
   periodLabels: string[];
 };
-export type ThemeMode = "dark" | "light";
 export type PeriodMode = "mom" | "yoy" | "ytd";
 export type TrendPoint = SectionMonthlyPoint & {
   valueLabel: string;

@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeInitScript } from "@/components/theme-init-script";
+import type { Metadata, Viewport } from "next";
+import { Geist } from "next/font/google";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { LazyToaster } from "@/components/ui/lazy-toaster";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -8,14 +9,16 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Commercial Financial 2",
-  description: "Invoice and payment monitoring dashboard.",
+  title: {
+    default: "Commercial Finance 2",
+    template: "%s · Commercial Finance 2",
+  },
+  description: "Dashboard monitoring invoice, payment, ekspor, dan KPI Commercial Finance 2.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#174D55",
 };
 
 export default function RootLayout({
@@ -24,10 +27,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="id" suppressHydrationWarning className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <ThemeInitScript />
-        {children}
+        <ConfirmProvider>{children}</ConfirmProvider>
+        <LazyToaster />
       </body>
     </html>
   );

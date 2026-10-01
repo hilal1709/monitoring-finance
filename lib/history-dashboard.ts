@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { ComponentType } from "react";
-import { AlertTriangle, CheckCircle2, Database, Table2 } from "lucide-react";
+import type { IconSvgElement } from "@hugeicons/react";
+import { Alert02Icon, CheckmarkCircle02Icon, DatabaseIcon, Table01Icon } from "@hugeicons/core-free-icons";
 
 import { getPostgresPool } from "@/lib/postgres";
 
@@ -13,7 +13,7 @@ export type HistoryDashboardMetric = {
   value: string;
   delta: string;
   tone: HistoryMetricTone;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconSvgElement;
 };
 
 export type HistoryUploadRow = {
@@ -24,7 +24,7 @@ export type HistoryUploadRow = {
   status: string;
   statusTone: HistoryStatusTone;
   rows: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconSvgElement;
 };
 
 export type HistoryDashboardData = {
@@ -48,12 +48,12 @@ type UploadHistoryRecord = {
 };
 
 const metricIcons = {
-  database: Database,
-  success: CheckCircle2,
-  error: AlertTriangle,
+  database: DatabaseIcon,
+  success: CheckmarkCircle02Icon,
+  error: Alert02Icon,
 } as const;
 
-const rowIcon = Table2;
+const rowIcon = Table01Icon;
 
 function formatDateParts(value: string) {
   const date = new Date(value);

@@ -1,6 +1,8 @@
 import type {
   DashboardRecord,
   DashboardSection,
+  DashboardWireRecord,
+  PackedDashboardReports,
   PersistedDashboardReport,
   PersistedDashboardReports,
   RankedItem,
@@ -17,6 +19,7 @@ import type {
 } from "@/lib/dashboard-types";
 import { monthLabels, monthOrder, paymentTargetPenerimaan } from "@/lib/dashboard-constants";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/dashboard-format";
+import { unpackRows } from "@/lib/packed-rows";
 
 export function monthlyAverage(section: DashboardSection) {
   return section.monthly.length > 0 ? section.monthly.reduce((total, point) => total + point.value, 0) / section.monthly.length : 0;
@@ -74,6 +77,11 @@ export function recordsTotal(records: DashboardRecord[]) {
   return records.reduce((total, record) => total + record.amount, 0);
 }
 
+/** Source row count — records may be server-side aggregates of several rows. */
+export function recordsCount(records: DashboardRecord[]) {
+  return records.reduce((total, record) => total + (record.count ?? 1), 0);
+}
+
 export function rankRecords(
   records: DashboardRecord[],
   keyFn: (record: DashboardRecord) => string,
@@ -88,7 +96,7 @@ export function rankRecords(
     const label = keyFn(record) || "Unmapped";
     const item = grouped.get(label) ?? { value: 0, count: 0 };
     item.value += record.amount;
-    item.count += 1;
+    item.count += record.count ?? 1;
     grouped.set(label, item);
   }
 
@@ -148,11 +156,12 @@ export function latestRecordPeriod(records: DashboardRecord[]) {
 
 export function sectionFromRecords(records: DashboardRecord[], statusOrder: string[]): DashboardSection {
   const totalAmount = recordsTotal(records);
+  const rowCount = recordsCount(records);
 
   return {
-    rowCount: records.length,
+    rowCount,
     totalAmount,
-    averageAmount: records.length > 0 ? totalAmount / records.length : 0,
+    averageAmount: rowCount > 0 ? totalAmount / rowCount : 0,
     latestPeriod: latestRecordPeriod(records),
     statusMix: rankRecords(records, (record) => record.status, 8, statusOrder),
     customerTypes: rankRecords(records, (record) => record.customerType, 6),
@@ -221,7 +230,7 @@ export function filterOptions(section: DashboardSection, key: FilterKey, fallbac
 
     const item = grouped.get(label) ?? { value: 0, count: 0, sort: recordOptionSort(record, key, label) };
     item.value += record.amount;
-    item.count += 1;
+    item.count += record.count ?? 1;
     grouped.set(label, item);
   }
 
@@ -428,6 +437,41 @@ export function fromPersistedReport(report: PersistedDashboardReport): LoadedRep
     file: report.file,
     section: report.section,
   };
+}
+
+export function statusOrderForRole(role: WorkbookRole): string[] {
+  return role === "invoice"
+    ? ["Current", "Bucket 1", "Bucket 2", "Bucket 3", "Bucket 4"]
+    : ["No Risk", "Low Risk", "Warning", "Warning +", "High Risk", "High Risk +"];
+}
+
+function withPeriodFields(record: DashboardWireRecord): DashboardRecord {
+  const [year, month] = (record.periodKey ?? "").split("-").map(Number);
+  const valid = Number.isFinite(year) && month >= 1 && month <= 12;
+
+  return {
+    ...record,
+    periodLabel: record.periodKey ? (valid ? `${monthLabels[month - 1]} ${year}` : record.periodKey) : null,
+    periodSort: valid ? year * 100 + month : null,
+  };
+}
+
+/** Rebuilds full sections from the packed wire format (see `PackedDashboardReport`). */
+export function loadedReportsFromPacked(reports?: PackedDashboardReports) {
+  const loaded: Partial<Record<WorkbookRole, LoadedReport>> = {};
+
+  for (const report of Object.values(reports ?? {})) {
+    if (!report) continue;
+    const records = unpackRows(report.records).map(withPeriodFields);
+
+    loaded[report.role] = {
+      generatedAt: report.generatedAt,
+      file: report.file,
+      section: { ...sectionFromRecords(records, statusOrderForRole(report.role)), monthly: monthlyFromRecords(records) },
+    };
+  }
+
+  return loaded;
 }
 
 export function loadedReportsFromPersisted(reports?: PersistedDashboardReports) {

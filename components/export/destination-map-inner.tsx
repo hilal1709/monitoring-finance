@@ -7,10 +7,10 @@ import type { DestinationGeoDatum } from "@/lib/export-destinations-geo";
 
 // Warna aksen untuk 3 tujuan terbesar; sisanya abu-abu netral.
 function accentForRank(rank: number) {
-  if (rank === 0) return "#facc15";
-  if (rank === 1) return "#22d3ee";
-  if (rank === 2) return "#22c55e";
-  return "#94a3b8";
+  if (rank === 0) return "#FFE66D";
+  if (rank === 1) return "#4ECDC4";
+  if (rank === 2) return "#174D55";
+  return "#174D55";
 }
 
 export default function DestinationMapInner({
@@ -33,14 +33,17 @@ export default function DestinationMapInner({
       minZoom={1}
       scrollWheelZoom
       worldCopyJump
-      className="h-[420px] w-full rounded-lg"
-      style={{ background: "rgba(15,23,42,0.35)" }}
+      className="h-[280px] w-full rounded-lg sm:h-[360px] lg:h-[420px]"
+      style={{ background: "rgba(26,83,92,0.25)" }}
     >
       {/* Basemap tanpa label bawaan (nama negara di tile OSM memakai aksara lokal
           masing-masing); label negara tujuan dirender sendiri dalam bahasa Indonesia. */}
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png"
+        // On high-DPI screens request the next zoom level at half size: crisp
+        // tiles whose pixel size matches how large they're drawn.
+        detectRetina
       />
       {points.map((datum, index) => {
         const accent = accentForRank(index);
@@ -54,11 +57,11 @@ export default function DestinationMapInner({
           >
             {/* Nama negara (bahasa Indonesia) selalu tampil; detail nilai muncul saat diklik. */}
             <Tooltip direction="top" offset={[0, -4]} opacity={0.9} permanent>
-              <span className="text-[10px] font-semibold text-slate-900">{datum.name}</span>
+              <span className="text-[10px] font-semibold text-[#174D55]">{datum.name}</span>
             </Tooltip>
             <Popup>
-              <div className="text-[11px] font-semibold text-slate-900">{datum.name}</div>
-              <div className="text-[10px] text-slate-600">
+              <div className="text-[11px] font-semibold text-[#174D55]">{datum.name}</div>
+              <div className="text-[10px] text-[#174D55]/90">
                 {format(value(datum))} · {datum.count.toLocaleString("id-ID")} transaksi
               </div>
             </Popup>

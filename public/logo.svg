@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64">
+  <rect width="64" height="64" rx="16" fill="#1A535C"/>
+  <g transform="translate(32 32)">
+    <path d="M0 -2.5C2.5 -14 12 -22.5 24 -22C24 -9 15 -0.5 2.5 1Z" fill="#4ECDC4"/>
+    <path d="M0 -2.5C2.5 -14 12 -22.5 24 -22C24 -9 15 -0.5 2.5 1Z" fill="#FFE66D" transform="rotate(120)"/>
+    <path d="M0 -2.5C2.5 -14 12 -22.5 24 -22C24 -9 15 -0.5 2.5 1Z" fill="#FF6B6B" transform="rotate(240)"/>
+    <circle r="3.4" fill="#F7FFF7"/>
+  </g>
+  <text x="80" y="29" font-family="Geist, Arial, sans-serif" font-size="20" font-weight="700" fill="#1A535C">Commercial</text>
+  <text x="80" y="52" font-family="Geist, Arial, sans-serif" font-size="20" font-weight="700" fill="#1A535C">Finance</text>
+  <rect x="160" y="35" width="24" height="22" rx="6" fill="#FFE66D"/>
+  <text x="172" y="51.5" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="15" font-weight="800" fill="#1A535C">2</text>
+</svg>

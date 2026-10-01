@@ -19,6 +19,8 @@ import { getPostgresPool } from "@/lib/postgres";
 export type Narrative = {
   executiveSummary: string;
   insights: string[];
+  /** Closing paragraph with follow-up recommendations (absent in older cached rows). */
+  conclusion?: string;
 };
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
@@ -130,9 +132,14 @@ function rankBy<T>(records: ExportRecordLike[], keyFn: (r: ExportRecordLike) => 
 }
 
 /** Aggregates for the export deck, built from raw export records + monthly rollups. */
+type ExportKpiLike = {
+  months: Array<{ salesTargetUsd: number; salesActualUsd: number; paymentTargetUsd: number; paymentActualUsd: number }>;
+} | null;
+
 export function buildExportAggregates(
   records: ExportRecordLike[],
   months: Array<{ label?: string; totalUsd?: number; totalTonnage?: number }>,
+  kpi: ExportKpiLike = null,
 ) {
   const totalUsd = records.reduce((s, r) => s + Number(r.usdValue ?? 0), 0);
   const paid = records.filter(isPaid);
@@ -154,6 +161,14 @@ export function buildExportAggregates(
     topEntitas: rankBy(records, (r) => r.companyCode ?? ""),
     topTujuan: rankBy(records, (r) => r.destination ?? ""),
     topBuyer: rankBy(records, (r) => r.buyer ?? ""),
+    kpi2026: kpi
+      ? {
+          targetPenjualanUsd: Math.round(kpi.months.reduce((s, m) => s + m.salesTargetUsd, 0)),
+          realisasiPenjualanUsd: Math.round(kpi.months.reduce((s, m) => s + m.salesActualUsd, 0)),
+          targetPenerimaanUsd: Math.round(kpi.months.reduce((s, m) => s + m.paymentTargetUsd, 0)),
+          realisasiPenerimaanUsd: Math.round(kpi.months.reduce((s, m) => s + m.paymentActualUsd, 0)),
+        }
+      : null,
     trenBulanan: (months ?? []).slice(0, 12).map((m) => ({
       label: m.label ?? "?",
       penjualanUsd: Math.round(Number(m.totalUsd ?? 0)),
@@ -166,7 +181,7 @@ export function buildExportAggregates(
 
 function cacheKey(scope: string, aggregates: unknown) {
   return createHash("sha256")
-    .update(JSON.stringify({ scope, model: MODEL, aggregates }))
+    .update(JSON.stringify({ v: 2, scope, model: MODEL, aggregates })) // v2: adds `conclusion`
     .digest("hex");
 }
 
@@ -178,7 +193,7 @@ function parseNarrative(content: string): Narrative | null {
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return null;
 
-  let obj: { executiveSummary?: unknown; insights?: unknown };
+  let obj: { executiveSummary?: unknown; insights?: unknown; conclusion?: unknown };
   try {
     obj = JSON.parse(text.slice(start, end + 1));
   } catch {
@@ -194,8 +209,10 @@ function parseNarrative(content: string): Narrative | null {
         .slice(0, 5)
     : [];
 
+  const conclusion = typeof obj.conclusion === "string" ? obj.conclusion.trim() : "";
+
   if (!summary && insights.length === 0) return null;
-  return { executiveSummary: summary, insights };
+  return { executiveSummary: summary, insights, ...(conclusion ? { conclusion } : {}) };
 }
 
 const SYSTEM_PROMPT =
@@ -204,9 +221,13 @@ const SYSTEM_PROMPT =
   "ATURAN KETAT: hanya gunakan angka yang ADA atau dapat dihitung langsung dari data; " +
   "DILARANG mengarang angka, persentase, atau fakta yang tidak ada di data. " +
   "Soroti tren, konsentrasi/risiko (mis. piutang outstanding, status menunggak), dan hal yang perlu ditindaklanjuti. " +
-  'Balas HANYA JSON valid tanpa teks lain, format: {"executiveSummary": string (2-3 kalimat), "insights": string[] (3-5 poin singkat)}.';
+  'Balas HANYA JSON valid tanpa teks lain, format: {"executiveSummary": string (2-3 kalimat), "insights": string[] (3-5 poin singkat), ' +
+  '"conclusion": string (2-3 kalimat kesimpulan + rekomendasi tindak lanjut)}.';
 
-/** Single OpenRouter call for one model. Throws on network/timeout; returns null on bad/empty response. */
+/** Auth failures apply to every model, so the chain stops instead of retrying. */
+class OpenRouterAuthError extends Error {}
+
+/** Single OpenRouter call for one model. Throws on network/timeout/auth; returns null on bad/empty response. */
 async function callModel(
   apiKey: string,
   model: string,
@@ -236,7 +257,11 @@ async function callModel(
     });
 
     if (!res.ok) {
-      console.warn(`[ai-narrative] ${model} -> ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const body = (await res.text()).slice(0, 200);
+      if (res.status === 401 || res.status === 403) {
+        throw new OpenRouterAuthError(`OPENROUTER_API_KEY ditolak (${res.status}): ${body}`);
+      }
+      console.warn(`[ai-narrative] ${model} -> ${res.status}: ${body}`);
       return null;
     }
 
@@ -255,9 +280,14 @@ async function callOpenRouter(apiKey: string, scope: string, aggregates: unknown
       const narrative = await callModel(apiKey, model, scope, aggregates);
       if (narrative) return narrative;
     } catch (error) {
+      if (error instanceof OpenRouterAuthError) {
+        console.warn(`[ai-narrative] ${error.message} — narasi AI dilewati, deck memakai penjelasan otomatis.`);
+        return null;
+      }
       console.warn(`[ai-narrative] ${model} error:`, error instanceof Error ? error.message : error);
     }
   }
+  console.warn("[ai-narrative] semua model gagal — deck memakai penjelasan otomatis.");
   return null;
 }
 
@@ -269,29 +299,35 @@ export async function getNarrative(scope: string, aggregates: unknown): Promise<
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) return null;
 
+  const key = cacheKey(scope, aggregates);
+
+  // The cache is best-effort: a database problem must not block the AI call.
+  let cacheReady = false;
   try {
     await ensureNarrativeSchema();
-    const pool = getPostgresPool();
-    const key = cacheKey(scope, aggregates);
-
-    const hit = await pool.query<{ narrative: Narrative }>(
+    cacheReady = true;
+    const hit = await getPostgresPool().query<{ narrative: Narrative }>(
       `select narrative from public.dashboard_narratives where cache_key = $1;`,
       [key],
     );
     if (hit.rows[0]) return hit.rows[0].narrative;
+  } catch (error) {
+    schemaPromise = null;
+    console.warn("[ai-narrative] cache tidak tersedia:", error instanceof Error ? error.message : error);
+  }
 
-    const narrative = await callOpenRouter(apiKey, scope, aggregates);
-    if (!narrative) return null;
+  const narrative = await callOpenRouter(apiKey, scope, aggregates);
+  if (!narrative || !cacheReady) return narrative;
 
-    await pool.query(
+  try {
+    await getPostgresPool().query(
       `insert into public.dashboard_narratives (cache_key, scope, model, narrative)
        values ($1, $2, $3, $4)
        on conflict (cache_key) do nothing;`,
       [key, scope, MODEL, JSON.stringify(narrative)],
     );
-    return narrative;
   } catch (error) {
-    console.warn("[ai-narrative] gagal:", error instanceof Error ? error.message : error);
-    return null;
+    console.warn("[ai-narrative] gagal menyimpan cache:", error instanceof Error ? error.message : error);
   }
+  return narrative;
 }

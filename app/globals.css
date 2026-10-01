@@ -1,83 +1,146 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+/* Color palette (anita.pdf), used by every token below:
+   #174D55 deep teal    — primary text, headings, sidebar, positive values
+   #4ECDC4 turquoise    — primary accent, primary buttons, focus ring
+   #F7FFF7 mint white   — light surfaces, text on teal
+   #FF6B6B coral        — negative values, errors, destructive actions
+   #FFE66D sunny yellow — highlights, active states, warnings */
 :root {
-  --background: #050816;
-  --foreground: #e2e8f0;
-  --app-bg: #07111f;
-  --app-fg: #edf4ff;
-  --surface: #0c1724;
-  --surface-2: #07111f;
-  --surface-3: #0b1320;
-  --surface-muted: rgba(255, 255, 255, 0.04);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.15);
-  --muted-fg: #64748b;
-  --soft-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-  --kpi-table-header: #1d334b;
-  --kpi-table-body: #101d2c;
-  --kpi-table-alt: #142434;
-  --kpi-table-text: #f8fafc;
-  --kpi-table-border: #4b6075;
-}
+  --palette-teal: #174d55;
+  --palette-turquoise: #4ecdc4;
+  --palette-mint: #f7fff7;
+  --palette-coral: #ff6b6b;
+  --palette-yellow: #ffe66d;
 
-:root[data-theme="light"] {
-  --background: #f5f7fb;
-  --foreground: #0f172a;
-  --app-bg: #eef2f8;
-  --app-fg: #0f172a;
+  /* App tokens used by existing components. The page canvas is a slightly
+     deeper mint so white panels and the mint KPI card read as distinct blocks. */
+  --app-bg: #eaf2ee;
+  --app-fg: var(--palette-teal);
   --surface: #ffffff;
-  --surface-2: #f8fafc;
+  --surface-2: #eefaf6;
   --surface-3: #ffffff;
-  --surface-muted: rgba(15, 23, 42, 0.04);
-  --border: rgba(15, 23, 42, 0.12);
-  --border-strong: rgba(15, 23, 42, 0.18);
-  --muted-fg: #64748b;
-  --soft-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-  --kpi-table-header: #dce6f1;
+  --surface-4: #e3f4f1;
+  --surface-muted: rgba(78, 205, 196, 0.08);
+  --border-strong: rgba(26, 83, 92, 0.24);
+  --muted-fg: rgba(23, 77, 85, 0.88);
+  --soft-shadow: 0 18px 45px rgba(26, 83, 92, 0.08);
+  --kpi-table-header: #c4eeea;
   --kpi-table-body: #ffffff;
-  --kpi-table-alt: #f1f5f9;
-  --kpi-table-text: #0f172a;
-  --kpi-table-border: #94a3b8;
+  --kpi-table-alt: #e6f8f6;
+  --kpi-table-text: var(--palette-teal);
+  --kpi-table-border: rgba(26, 83, 92, 0.25);
+
+  /* shadcn/ui tokens mapped onto the palette. */
+  --background: #eaf2ee;
+  --foreground: var(--palette-teal);
+  --card: #ffffff;
+  --card-foreground: var(--palette-teal);
+  --popover: #ffffff;
+  --popover-foreground: var(--palette-teal);
+  --primary: var(--palette-turquoise);
+  --primary-foreground: var(--palette-teal);
+  --secondary: #e3f4f1;
+  --secondary-foreground: var(--palette-teal);
+  --muted: #eef6f3;
+  --muted-foreground: rgba(23, 77, 85, 0.88);
+  --accent: var(--palette-yellow);
+  --accent-foreground: var(--palette-teal);
+  --destructive: var(--palette-coral);
+  --border: rgba(26, 83, 92, 0.14);
+  --input: rgba(26, 83, 92, 0.2);
+  --ring: var(--palette-turquoise);
+  --chart-1: var(--palette-turquoise);
+  --chart-2: var(--palette-coral);
+  --chart-3: var(--palette-yellow);
+  --chart-4: var(--palette-teal);
+  --chart-5: #a6e6e1;
+  --radius: 0.625rem;
+  --sidebar: var(--palette-teal);
+  --sidebar-foreground: var(--palette-mint);
+  --sidebar-primary: var(--palette-turquoise);
+  --sidebar-primary-foreground: var(--palette-teal);
+  --sidebar-accent: rgba(247, 255, 247, 0.1);
+  --sidebar-accent-foreground: var(--palette-mint);
+  --sidebar-border: rgba(247, 255, 247, 0.16);
+  --sidebar-ring: var(--palette-turquoise);
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-teal: var(--palette-teal);
+  --color-turquoise: var(--palette-turquoise);
+  --color-mint: var(--palette-mint);
+  --color-coral: var(--palette-coral);
+  /* Darker text shades of the accents: >= 4.5:1 on white and the app background. */
+  --color-coral-ink: #c93636;
+  --color-turquoise-ink: #13716c;
+  --color-sun: var(--palette-yellow);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-html,
-body {
-  min-height: 100%;
-}
-
-body {
-  background: var(--app-bg);
-  color: var(--app-fg);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-}
-
-:root {
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
-}
-
-/* Native select popups ignore app theme unless color-scheme is set; without it,
-   options inherit light --app-fg text onto the OS white dropdown surface. */
-select {
-  color-scheme: inherit;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  html,
+  body {
+    min-height: 100%;
+  }
+  body {
+    background: var(--app-bg);
+    color: var(--app-fg);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 select option {
@@ -85,180 +148,282 @@ select option {
   color: var(--app-fg);
 }
 
-:root[data-theme="light"] .bg-\[\#07111f\] {
-  background-color: #eef2f8;
+/* KPI stat cards are solid palette blocks, cycling in reference order:
+   turquoise → mint → coral → yellow. */
+.kpi-card {
+  color: var(--palette-teal);
+  background: var(--palette-turquoise);
+  transition: box-shadow 0.25s ease;
 }
 
-:root[data-theme="light"] .bg-\[\#07111f\]\/92,
-:root[data-theme="light"] .bg-\[\#07111f\]\/80 {
-  background-color: rgba(248, 250, 252, 0.92);
+.kpi-card:nth-child(4n + 2) {
+  background: var(--palette-mint);
+  box-shadow: inset 0 0 0 1px rgba(26, 83, 92, 0.12);
 }
 
-:root[data-theme="light"] .bg-\[\#0b1320\] {
-  background-color: #f8fafc;
+.kpi-card:nth-child(4n + 3) {
+  /* Deeper coral so the mint text clears 4.5:1 (brand coral is only 2.7:1). */
+  background: #cc3f3f;
+  color: var(--palette-mint);
 }
 
-:root[data-theme="light"] .bg-\[\#0c1724\],
-:root[data-theme="light"] .bg-\[\#0c1724\]\/80,
-:root[data-theme="light"] .bg-\[\#0c1724\]\/90 {
-  background-color: #ffffff;
+.kpi-card:nth-child(4n + 4) {
+  background: var(--palette-yellow);
 }
 
-:root[data-theme="light"] .bg-\[\#09111d\] {
-  background-color: #f0f4f8;
+.kpi-card:hover {
+  box-shadow: 0 18px 32px -14px rgba(26, 83, 92, 0.45);
 }
 
-:root[data-theme="light"] .bg-white\/5 {
-  background-color: rgba(15, 23, 42, 0.04);
+.kpi-card-icon {
+  background: rgba(247, 255, 247, 0.35);
 }
 
-:root[data-theme="light"] .bg-white\/10,
-:root[data-theme="light"] .hover\:bg-white\/10:hover,
-:root[data-theme="light"] .hover\:bg-white\/5:hover {
-  background-color: rgba(15, 23, 42, 0.08);
-}
-:root[data-theme="light"] .hover\:border-\[\#7dd3fc\]\/35:hover {
-  border-color: rgba(125, 211, 252, 0.35);
-}
-
-:root[data-theme="light"] .hover\:bg-\[\#7dd3fc\]\/10:hover {
-  background-color: rgba(125, 211, 252, 0.1);
-}
-
-:root[data-theme="light"] .border-\[\#ffd166\]\/50 {
-  border-color: rgba(255, 209, 102, 0.5);
-}
-
-:root[data-theme="light"] .bg-\[\#ffd166\] {
-  background-color: #ffd166;
-}
-
-:root[data-theme="light"] .text-\[\#211600\] {
-  color: #211600;
-}
-:root[data-theme="light"] .border-white\/10 {
-  border-color: rgba(15, 23, 42, 0.12);
-}
-
-:root[data-theme="light"] .border-white\/15 {
-  border-color: rgba(15, 23, 42, 0.18);
-}
-
-:root[data-theme="light"] .text-white {
-  color: #0f172a;
-}
-
-:root[data-theme="light"] .text-slate-100,
-:root[data-theme="light"] .text-slate-200 {
-  color: #0f172a;
-}
-
-:root[data-theme="light"] .text-slate-300,
-:root[data-theme="light"] .hover\:text-white:hover {
-  color: #334155;
-}
-
-:root[data-theme="light"] .hover\:bg-white\/5:hover {
-  background-color: rgba(15, 23, 42, 0.1);
-}
-
-:root[data-theme="light"] .bg-\[\#06113a\] {
-  background-color: #f0f4f8;
-}
-
-/* Override for arbitrary opacity values in light mode */
-:root[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
-  background-color: rgba(15, 23, 42, 0.12);
-}
-
-:root[data-theme="light"] .text-slate-400 {
-  color: #334155;
-}
-
-:root[data-theme="light"] .text-slate-500 {
-  color: #475569;
-}
-
-/* Boost low-contrast muted text in dark mode so values stay readable. */
-:root[data-theme="dark"] .text-slate-400 {
-  color: #cbd5e1;
-}
-
-:root[data-theme="dark"] .text-slate-500 {
-  color: #94a3b8;
-}
-
-/* The pastel accent colors are tuned for dark surfaces; on light mode's white
-   surfaces they wash out. Darken the TEXT usages only (bg-[...] is untouched). */
-:root[data-theme="light"] .text-\[\#ffd166\] {
-  color: #b45309;
-}
-
-:root[data-theme="light"] .text-\[\#70f0bf\] {
-  color: #047857;
-}
-
-:root[data-theme="light"] .text-\[\#7dd3fc\] {
-  color: #0369a1;
-}
-
-/* Value labels printed on top of bright chart bars: white core + dark halo
-   stays legible over yellow/green/cyan bars and over the empty track in both themes. */
-.chart-value {
-  color: #ffffff;
-  text-shadow:
-    0 0 2px rgba(0, 0, 0, 0.95),
-    0 1px 2px rgba(0, 0, 0, 0.85),
-    0 0 1px rgba(0, 0, 0, 0.95);
-}
-
-:root[data-theme="light"] .bg-black\/60 {
-  background-color: rgba(15, 23, 42, 0.35);
+.kpi-card:nth-child(4n + 2) .kpi-card-icon {
+  background: rgba(78, 205, 196, 0.2);
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.3);
-  color: #f8fafc;
+  background: rgba(78, 205, 196, 0.35);
+  color: var(--palette-teal);
 }
 
-.glass-panel {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.2);
-  border-left-color: rgba(255, 255, 255, 0.2);
+/* Skeleton shimmer used by loading placeholders. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: #e1eeea;
 }
 
-.neumorphic-base {
-  box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.03);
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(247, 255, 247, 0.85), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
-.neumorphic-inset {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -4px -4px 8px rgba(255, 255, 255, 0.04);
-}
-
-.neumorphic-button {
-  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.03);
-  transition: all 0.2s ease-in-out;
-}
-
-.neumorphic-button:active {
-  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.03);
-  transform: scale(0.98);
-}
-
-@keyframes growUp {
-  from {
-    height: 0;
-    opacity: 0;
-  }
+@keyframes shimmer {
   to {
+    transform: translateX(100%);
+  }
+}
+
+/* Click ripple spawned by MagneticButton. */
+.ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: rgba(247, 255, 247, 0.55);
+  transform: scale(0);
+}
+
+/* Animated dashed border for the drag-and-drop upload zone. */
+.drop-zone-active {
+  background-image:
+    repeating-linear-gradient(90deg, var(--palette-turquoise) 0 10px, transparent 10px 18px),
+    repeating-linear-gradient(90deg, var(--palette-turquoise) 0 10px, transparent 10px 18px),
+    repeating-linear-gradient(0deg, var(--palette-turquoise) 0 10px, transparent 10px 18px),
+    repeating-linear-gradient(0deg, var(--palette-turquoise) 0 10px, transparent 10px 18px);
+  background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  animation: march 0.6s linear infinite;
+}
+
+@keyframes march {
+  to {
+    background-position: 18px 0, -18px 100%, 0 -18px, 100% 18px;
+  }
+}
+
+/* Brand mark: petals rotate around the tile centre. */
+.logo-petals {
+  transform-origin: 32px 32px;
+}
+
+.logo-petals-spin {
+  animation: logo-spin 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes logo-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Loader caption dots hop one after another. */
+.loader-dot {
+  animation: loader-dot 0.7s ease-in-out infinite alternate;
+}
+
+.loader-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.loader-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes loader-dot {
+  to {
+    translate: 0 -4px;
+  }
+}
+
+/* Loader bars (CSS stand-in for the Lottie loader). */
+.loader-bar {
+  height: 100%;
+  transform-origin: 50% 100%;
+  animation: loader-bar 0.9s ease-in-out infinite;
+}
+
+@keyframes loader-bar {
+  0%,
+  100% {
+    scale: 1 0.35;
+  }
+  50% {
+    scale: 1 1;
+  }
+}
+
+/* Idle motion for the inline SVG illustrations (compositor-only, no JS). */
+.illustration {
+  animation: illustration-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.illustration [data-float] {
+  animation: illustration-float 2.2s ease-in-out infinite alternate;
+}
+
+.illustration [data-bounce] {
+  animation: illustration-bounce 1.2s ease-in-out infinite;
+}
+
+.illustration [data-sway] {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: illustration-sway 1.6s ease-in-out infinite alternate;
+}
+
+.illustration [data-twinkle] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: illustration-twinkle 0.9s ease-in-out infinite alternate;
+}
+
+.illustration [data-twinkle]:nth-of-type(2n) {
+  animation-delay: 0.3s;
+}
+
+.illustration [data-twinkle]:nth-of-type(3n) {
+  animation-delay: 0.6s;
+}
+
+.illustration [data-wave] {
+  animation: illustration-wave 2.4s linear infinite;
+}
+
+@keyframes illustration-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+
+@keyframes illustration-float {
+  to {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes illustration-bounce {
+  0%,
+  33%,
+  100% {
+    translate: 0 0;
+  }
+  66% {
+    translate: 0 -7px;
+  }
+}
+
+@keyframes illustration-sway {
+  to {
+    rotate: 4deg;
+  }
+}
+
+@keyframes illustration-twinkle {
+  to {
+    scale: 0.4;
+    opacity: 0.4;
+  }
+}
+
+@keyframes illustration-wave {
+  to {
+    translate: -24px 0;
+  }
+}
+
+/* KPI celebration burst (components/ui/confetti.tsx). */
+.confetti-piece {
+  position: absolute;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-burst 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 0.4;
+  }
+  70% {
     opacity: 1;
   }
+  100% {
+    opacity: 0;
+    translate: var(--confetti-x) calc(var(--confetti-y) + 40px);
+    rotate: var(--confetti-r);
+    scale: 1;
+  }
 }
 
-.bar-animate {
-  animation: growUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transform-origin: bottom;
+/* Phones: the dashboards' 10–11px micro labels are bumped to 12px so text stays
+   legible on small screens; desktop keeps the compact sizes. */
+@media (max-width: 767px) {
+  .text-\[10px\],
+  .text-\[11px\] {
+    font-size: 12px;
+  }
+}
+
+/* App header gains depth once the page scrolls under it. */
+.app-header {
+  transition: box-shadow 0.3s ease;
+}
+
+.app-header[data-scrolled="true"] {
+  box-shadow: 0 10px 30px -18px rgba(26, 83, 92, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after,
+  .drop-zone-active,
+  .logo-petals-spin,
+  .loader-dot,
+  .loader-bar,
+  .confetti-piece,
+  .illustration,
+  .illustration * {
+    animation: none !important;
+  }
 }

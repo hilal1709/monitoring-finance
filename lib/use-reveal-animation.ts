@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, type DependencyList, type RefObject } from "react";
-import { gsap } from "gsap";
+import { animate, ease, prefersReducedMotion } from "@/lib/motion";
 
 /**
  * `useLayoutEffect` on the client (runs before the browser paints, so the
@@ -28,15 +28,12 @@ const DEFAULTS: Required<RevealOptions> = {
   duration: 0.55,
 };
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 /**
- * Staggered fade/slide-up reveal of the elements matching `selector` inside
- * `containerRef`. Re-runs whenever `deps` change (e.g. switching dashboard
- * views), and is a no-op when the user prefers reduced motion.
+ * Staggered slide-up reveal of the elements matching `selector` inside
+ * `containerRef`. Blocks already on screen only glide into place — they stay
+ * opaque so the server-rendered content is visible (and counts as painted)
+ * immediately. Blocks below the fold fade in as they scroll into view.
+ * Re-runs whenever `deps` change; a no-op when the user prefers reduced motion.
  */
 export function useRevealAnimation(
   containerRef: RefObject<HTMLElement | null>,
@@ -47,31 +44,44 @@ export function useRevealAnimation(
 
   useIsomorphicLayoutEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || prefersReducedMotion()) return;
 
     const targets = Array.from(container.querySelectorAll<HTMLElement>(selector));
     if (targets.length === 0) return;
 
-    if (prefersReducedMotion()) {
-      gsap.set(targets, { clearProps: "all" });
-      return;
-    }
+    const fold = window.innerHeight * 0.95;
+    const visible = targets.filter((target) => target.getBoundingClientRect().top < fold);
+    const below = targets.filter((target) => target.getBoundingClientRect().top >= fold);
+    const animations = animate(visible, [{ translate: `0 ${y}px`, scale: "0.985" }, { translate: "0 0", scale: "1" }], { duration, stagger, ease: ease.outStrong });
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        targets,
-        { autoAlpha: 0, y },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration,
-          stagger,
-          ease: "power2.out",
-          clearProps: "transform,opacity,visibility",
-        },
-      );
-    }, container);
+    for (const target of below) target.style.opacity = "0";
 
-    return () => ctx.revert();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entering = entries.filter((entry) => entry.isIntersecting).map((entry) => entry.target as HTMLElement);
+
+        for (const target of entering) {
+          observer.unobserve(target);
+          target.style.opacity = "";
+        }
+
+        animations.push(
+          ...animate(entering, [{ opacity: 0, translate: `0 ${y}px`, scale: "0.985" }, { opacity: 1, translate: "0 0", scale: "1" }], {
+            duration,
+            stagger: stagger * 0.8,
+            ease: ease.outStrong,
+          }),
+        );
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+
+    for (const target of below) observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+      for (const animation of animations) animation.cancel();
+      for (const target of below) target.style.opacity = "";
+    };
   }, deps);
 }

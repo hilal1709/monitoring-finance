@@ -1,4 +1,4 @@
-import type { ExportRecord } from "@/lib/export-dashboard-types";
+import type { ExportViewRecord } from "@/lib/export-dashboard-types";
 
 export type RankedValue = {
   label: string;
@@ -15,18 +15,18 @@ export type MonthlyExportPoint = {
   tonnage: number;
 };
 
-export function isPaid(record: ExportRecord) {
+export function isPaid(record: ExportViewRecord) {
   return Boolean(record.paymentDate) || record.paymentStatus.toLowerCase() === "paid";
 }
 
-export function total(records: ExportRecord[], value: (record: ExportRecord) => number) {
+export function total(records: ExportViewRecord[], value: (record: ExportViewRecord) => number) {
   return records.reduce((sum, record) => sum + value(record), 0);
 }
 
 export function rankRecords(
-  records: ExportRecord[],
-  label: (record: ExportRecord) => string,
-  value: (record: ExportRecord) => number,
+  records: ExportViewRecord[],
+  label: (record: ExportViewRecord) => string,
+  value: (record: ExportViewRecord) => number,
   limit = 8,
 ) {
   const grouped = new Map<string, { value: number; count: number }>();
@@ -45,7 +45,7 @@ export function rankRecords(
     .slice(0, limit);
 }
 
-export function monthlyPoints(records: ExportRecord[]) {
+export function monthlyPoints(records: ExportViewRecord[]) {
   const grouped = new Map<string, MonthlyExportPoint>();
 
   for (const record of records) {

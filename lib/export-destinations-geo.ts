@@ -1,4 +1,4 @@
-import type { ExportRecord } from "@/lib/export-dashboard-types";
+import type { ExportViewRecord } from "@/lib/export-dashboard-types";
 
 // Titik koordinat (lng, lat) per negara/wilayah tujuan ekspor. Dipakai untuk
 // menempatkan bubble pada peta dunia equirectangular (viewBox 0 0 360 180),
@@ -58,7 +58,7 @@ export type DestinationGeoDatum = {
 
 // Agregasi record ekspor menjadi titik per negara. Tujuan yang tidak dikenal
 // koordinatnya dikumpulkan terpisah agar bisa ditampilkan sebagai catatan.
-export function aggregateDestinations(records: ExportRecord[]): {
+export function aggregateDestinations(records: ExportViewRecord[]): {
   points: DestinationGeoDatum[];
   unresolved: { name: string; usdValue: number }[];
 } {

@@ -4,16 +4,18 @@ import { createHash } from "node:crypto";
 
 import {
   buildSection,
-  buildSectionFromDbRecords,
   buildMonitoringDashboardFromFiles,
   groupByPeriod,
   parseRecordsFromWorkbook,
-  statusOrderByRole,
   type BaseRecord,
 } from "@/lib/monitoring-dashboard";
+import { packRows } from "@/lib/packed-rows";
 import { getPostgresPool } from "@/lib/postgres";
 import type {
+  DashboardMonthMeta,
+  DashboardPayload,
   DashboardRecord,
+  PackedDashboardReport,
   DashboardSection,
   MonitoringDashboardData,
   PersistedDashboardReport,
@@ -251,16 +253,13 @@ function ensureRecordsSchema() {
 }
 
 type DashboardRecordRow = {
-  role: WorkbookRole;
   period_key: string;
-  source_filename: string;
   amount: string;
+  row_count: number;
   customer_name: string | null;
   customer_type: string | null;
   invoice_type: string | null;
   status: string | null;
-  document_number: string | null;
-  risk_status: string | null;
 };
 
 function monthLabelFromPeriodKey(periodKey: string) {
@@ -291,6 +290,7 @@ function recordToDashboardRecord(row: DashboardRecordRow): DashboardRecord {
     periodKey,
     periodLabel,
     periodSort,
+    count: row.row_count,
   };
 }
 
@@ -301,36 +301,27 @@ type StoredMonthMeta = {
   latest_uploaded_at: string;
 };
 
-export type StoredMonth = {
-  periodKey: string;
-  label: string;
-  rowCount: number;
-  totalAmount: number;
-  uploadedAt: string;
-};
+export type StoredMonth = DashboardMonthMeta;
 
-async function buildSectionForRole(role: WorkbookRole): Promise<DashboardSection | undefined> {
+// Every dashboard filter works on these five dimensions, so rows that share
+// all of them are merged in SQL (amount summed, row count kept in `count`).
+// The client gets the exact same totals with ~40% fewer records.
+async function loadAggregatedRecords(role: WorkbookRole): Promise<DashboardRecord[]> {
   await ensureRecordsSchema();
 
   const result = await getPostgresPool().query<DashboardRecordRow>(
     `
-      select role, period_key, source_filename, amount::text,
-             customer_name, customer_type, invoice_type, status,
-             document_number, risk_status
+      select period_key, sum(amount)::text as amount, count(*)::int as row_count,
+             customer_name, customer_type, invoice_type, status
       from public.dashboard_records
       where role = $1
+      group by period_key, customer_name, customer_type, invoice_type, status
       order by period_key asc;
     `,
     [role],
   );
 
-  if (result.rows.length === 0) {
-    return undefined;
-  }
-
-  const records = result.rows.map(recordToDashboardRecord);
-
-  return buildSectionFromDbRecords(records, statusOrderByRole(role));
+  return result.rows.map(recordToDashboardRecord);
 }
 
 export async function listAvailableMonthsForRole(role: WorkbookRole): Promise<StoredMonth[]> {
@@ -357,25 +348,61 @@ export async function listAvailableMonthsForRole(role: WorkbookRole): Promise<St
   }));
 }
 
-// Upsert a single month: delete existing rows for (role, periodKey) then insert
-// the new ones inside one transaction.
-export async function upsertMonthRecords(
-  role: WorkbookRole,
-  periodKey: string,
-  records: BaseRecord[],
-  sourceFilename: string,
-): Promise<{ rowCount: number }> {
+export type RoleDashboard = { report?: PackedDashboardReport; months: StoredMonth[] };
+
+export async function getRoleDashboard(role: WorkbookRole): Promise<RoleDashboard> {
+  const [records, months] = await Promise.all([loadAggregatedRecords(role), listAvailableMonthsForRole(role)]);
+
+  if (records.length === 0) {
+    return { months };
+  }
+
+  const latestMonth = months[0];
+
+  return {
+    months,
+    report: {
+      role,
+      generatedAt: latestMonth?.uploadedAt ?? new Date().toISOString(),
+      file: {
+        role,
+        name: latestMonth ? `Merge ${months.length} bulan` : "Dashboard",
+        sheetName: role === "invoice" ? "Billing Detail" : "Detail Payment",
+        rowCount: months.reduce((total, month) => total + month.rowCount, 0),
+        totalAmount: months.reduce((total, month) => total + month.totalAmount, 0),
+      },
+      records: packRows(records.map(({ periodLabel: _label, periodSort: _sort, ...record }) => record)),
+    },
+  };
+}
+
+export function toDashboardPayload(entries: (readonly [WorkbookRole, RoleDashboard])[]): DashboardPayload {
+  const payload: DashboardPayload = { reports: {}, months: {} };
+
+  for (const [role, dashboard] of entries) {
+    payload.months[role] = dashboard.months;
+    if (dashboard.report) payload.reports[role] = dashboard.report;
+  }
+
+  return payload;
+}
+
+// Replace every month present in the workbook inside ONE transaction on ONE
+// connection: a single bulk delete, then chunked unnest() inserts. Running a
+// transaction per month in parallel opened N pool connections against the
+// remote Postgres and made multi-month uploads slow.
+async function replaceMonthRecords(role: WorkbookRole, byPeriod: Map<string, BaseRecord[]>, sourceFilename: string) {
   await ensureRecordsSchema();
 
-  const pool = getPostgresPool();
-  const client = await pool.connect();
+  const rows = [...byPeriod.entries()].flatMap(([periodKey, records]) => records.map((record) => ({ periodKey, record })));
+  const client = await getPostgresPool().connect();
 
   try {
     await client.query("begin");
-    await client.query(`delete from public.dashboard_records where role = $1 and period_key = $2;`, [role, periodKey]);
+    await client.query(`delete from public.dashboard_records where role = $1 and period_key = any($2::text[]);`, [role, [...byPeriod.keys()]]);
 
-    for (let start = 0; start < records.length; start += DASHBOARD_RECORD_INSERT_CHUNK_SIZE) {
-      const chunk = records.slice(start, start + DASHBOARD_RECORD_INSERT_CHUNK_SIZE);
+    for (let start = 0; start < rows.length; start += DASHBOARD_RECORD_INSERT_CHUNK_SIZE) {
+      const chunk = rows.slice(start, start + DASHBOARD_RECORD_INSERT_CHUNK_SIZE);
 
       await client.query(
         `
@@ -386,8 +413,8 @@ export async function upsertMonthRecords(
           )
           select
             $1::text,
+            record.period_key,
             $2::text,
-            $3::text,
             record.amount,
             record.customer_name,
             record.customer_type,
@@ -396,6 +423,7 @@ export async function upsertMonthRecords(
             record.document_number,
             record.risk_status
           from unnest(
+            $3::text[],
             $4::numeric[],
             $5::text[],
             $6::text[],
@@ -404,6 +432,7 @@ export async function upsertMonthRecords(
             $9::text[],
             $10::text[]
           ) as record(
+            period_key,
             amount,
             customer_name,
             customer_type,
@@ -415,21 +444,20 @@ export async function upsertMonthRecords(
         `,
         [
           role,
-          periodKey,
           sourceFilename,
-          chunk.map((record) => record.amount),
-          chunk.map((record) => record.customerName),
-          chunk.map((record) => record.customerType),
-          chunk.map((record) => record.invoiceType),
-          chunk.map((record) => record.status),
-          chunk.map((record) => (record as BaseRecord & { documentNumber?: string }).documentNumber ?? null),
-          chunk.map((record) => (record as BaseRecord & { riskStatus?: string }).riskStatus ?? null),
+          chunk.map(({ periodKey }) => periodKey),
+          chunk.map(({ record }) => record.amount),
+          chunk.map(({ record }) => record.customerName),
+          chunk.map(({ record }) => record.customerType),
+          chunk.map(({ record }) => record.invoiceType),
+          chunk.map(({ record }) => record.status),
+          chunk.map(({ record }) => (record as BaseRecord & { documentNumber?: string }).documentNumber ?? null),
+          chunk.map(({ record }) => (record as BaseRecord & { riskStatus?: string }).riskStatus ?? null),
         ],
       );
     }
 
     await client.query("commit");
-    return { rowCount: records.length };
   } catch (error) {
     await client.query("rollback");
     throw error;
@@ -449,67 +477,8 @@ export async function deleteMonthRecords(role: WorkbookRole, periodKey: string):
   return { deleted: result.rowCount ?? 0 };
 }
 
-export type AllDashboardReportsResult = {
-  reports: PersistedDashboardReports;
-  months: Partial<Record<WorkbookRole, StoredMonth[]>>;
-};
-
-export async function getAllDashboardReports(role?: WorkbookRole): Promise<AllDashboardReportsResult> {
-  const roles: WorkbookRole[] = role ? [role] : ["invoice", "payment"];
-
-  const [reports, months] = await Promise.all([
-    Promise.all(
-      roles.map(async (currentRole): Promise<[WorkbookRole, PersistedDashboardReport] | null> => {
-        const section = await buildSectionForRole(currentRole);
-        if (!section) {
-          return null;
-        }
-
-        const monthsForRole = await listAvailableMonthsForRole(currentRole);
-        const latestMonth = monthsForRole[0];
-
-        const report: PersistedDashboardReport = {
-          id: 0,
-          role: currentRole,
-          generatedAt: latestMonth?.uploadedAt ?? new Date().toISOString(),
-          file: {
-            role: currentRole,
-            name: latestMonth ? `Merge ${monthsForRole.length} bulan` : "Dashboard",
-            sheetName: currentRole === "invoice" ? "Billing Detail" : "Detail Payment",
-            rowCount: section.rowCount,
-            totalAmount: section.totalAmount,
-          },
-          section,
-        };
-
-        return [currentRole, report];
-      }),
-    ),
-    Promise.all(
-      roles.map(async (currentRole): Promise<[WorkbookRole, StoredMonth[]]> => [
-        currentRole,
-        await listAvailableMonthsForRole(currentRole),
-      ]),
-    ),
-  ]);
-
-  const reportsMap = reports.reduce<PersistedDashboardReports>((acc, entry) => {
-    if (entry) {
-      acc[entry[0]] = entry[1];
-    }
-    return acc;
-  }, {});
-
-  const monthsMap = months.reduce<Partial<Record<WorkbookRole, StoredMonth[]>>>((acc, entry) => {
-    acc[entry[0]] = entry[1];
-    return acc;
-  }, {});
-
-  return { reports: reportsMap, months: monthsMap };
-}
-
 // Upload handler for the per-month merge model: parse the workbook, group its
-// records by period, and upsert each period independently. A workbook with many
+// records by period, and replace each of those periods. A workbook with many
 // months (initial bulk upload) stores each month separately; a single-month
 // workbook only touches that one month.
 export async function saveDashboardUploadByMonth(
@@ -528,23 +497,11 @@ export async function saveDashboardUploadByMonth(
     throw new Error("Record di workbook tidak memiliki periode (bulan/tahun) atau tanggal yang bisa dibaca.");
   }
 
-  const upserted = await Promise.all(
-    [...byPeriod.entries()].map(async ([periodKey, periodRecords]) => {
-      const result = await upsertMonthRecords(role, periodKey, periodRecords, file.name);
-      return { periodKey, rowCount: result.rowCount };
-    }),
-  );
+  await replaceMonthRecords(role, byPeriod, file.name);
 
-  return { upsertedMonths: upserted };
-}
-
-// ---------------------------------------------------------------------------
-// Backwards-compat shim: build a MonitoringDashboardData-shaped overview from
-// the merged per-month records, used where the upload response still wants to
-// echo the parsed section.
-// ---------------------------------------------------------------------------
-export async function buildOverviewFromStoredRecords(role: WorkbookRole): Promise<DashboardSection | undefined> {
-  return buildSectionForRole(role);
+  return {
+    upsertedMonths: [...byPeriod.entries()].map(([periodKey, periodRecords]) => ({ periodKey, rowCount: periodRecords.length })),
+  };
 }
 
 // Re-exported so the legacy snapshot path keeps compiling if still referenced.

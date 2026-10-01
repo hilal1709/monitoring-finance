@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSpreadsheet, Ship, Target, TrendingUp } from "lucide-react";
+import { Xls01Icon, ShipIcon, Target02Icon, ChartLineData01Icon } from "@hugeicons/core-free-icons";
 import { ChartPanel } from "@/components/export/chart-panel";
 import { ExportKpi } from "@/components/export/export-kpi";
 import { HorizontalBars } from "@/components/export/horizontal-bars";
@@ -8,7 +8,7 @@ import { SourceNotice } from "@/components/export/source-notice";
 import { TrendChart } from "@/components/export/trend-chart";
 import { formatTonnage, formatUsd } from "@/lib/export-dashboard-format";
 import { monthlyPoints, rankRecords, total } from "@/lib/export-dashboard-data";
-import type { ExportKpiSummary, ExportRecord } from "@/lib/export-dashboard-types";
+import type { ExportKpiSummary, ExportViewRecord } from "@/lib/export-dashboard-types";
 
 type KpiBarPoint = {
   label: string;
@@ -29,7 +29,7 @@ function kpiRealisasiPct(actual: number, target: number) {
   return `${Math.round((actual / target) * 100)}%`;
 }
 
-export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: ExportKpiSummary | null }) {
+export function RkapView({ records, kpi }: { records: ExportViewRecord[]; kpi: ExportKpiSummary | null }) {
   const byYear = rankRecords(records, (record) => record.periodKey.slice(0, 4), (record) => record.usdValue, 10)
     .sort((left, right) => left.label.localeCompare(right.label));
 
@@ -55,17 +55,17 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
     return (
       <>
         <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <ExportKpi title="Target Penjualan" value={formatUsd(totalSalesTarget)} icon={Target} />
-          <ExportKpi title="Realisasi Penjualan" value={formatUsd(totalSalesActual)} icon={TrendingUp} accent="cyan" />
-          <ExportKpi title="Target Penerimaan" value={formatUsd(totalPaymentTarget)} icon={Target} accent="emerald" />
-          <ExportKpi title="Realisasi Penerimaan" value={formatUsd(totalPaymentActual)} icon={Ship} accent="red" />
+          <ExportKpi title="Target Penjualan" value={formatUsd(totalSalesTarget)} icon={Target02Icon} />
+          <ExportKpi title="Realisasi Penjualan" value={formatUsd(totalSalesActual)} icon={ChartLineData01Icon} accent="cyan" />
+          <ExportKpi title="Target Penerimaan" value={formatUsd(totalPaymentTarget)} icon={Target02Icon} accent="emerald" />
+          <ExportKpi title="Realisasi Penerimaan" value={formatUsd(totalPaymentActual)} icon={ShipIcon} accent="red" />
         </div>
 
         <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <ExportKpi title="% Realisasi Penjualan" value={kpiRealisasiPct(totalSalesActual, totalSalesTarget)} icon={Target} />
-          <ExportKpi title="% Realisasi Penerimaan" value={kpiRealisasiPct(totalPaymentActual, totalPaymentTarget)} icon={TrendingUp} accent="cyan" />
-          <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={Ship} accent="emerald" />
-          <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={FileSpreadsheet} accent="red" />
+          <ExportKpi title="% Realisasi Penjualan" value={kpiRealisasiPct(totalSalesActual, totalSalesTarget)} icon={Target02Icon} />
+          <ExportKpi title="% Realisasi Penerimaan" value={kpiRealisasiPct(totalPaymentActual, totalPaymentTarget)} icon={ChartLineData01Icon} accent="cyan" />
+          <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="emerald" />
+          <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="red" />
         </div>
 
         <div data-animate-card className="grid gap-2 lg:grid-cols-2">
@@ -73,8 +73,8 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
             <TrendChart
               points={kpiMonthlyPoints}
               series={[
-                { key: "salesTarget", label: "Target", color: "#22d3ee" },
-                { key: "sales", label: "Realisasi", color: "#facc15" },
+                { key: "salesTarget", label: "Target", color: "#4ECDC4" },
+                { key: "sales", label: "Realisasi", color: "#FFE66D" },
               ]}
               valueFormatter={formatUsd}
             />
@@ -83,8 +83,8 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
             <TrendChart
               points={kpiMonthlyPoints}
               series={[
-                { key: "paymentTarget", label: "Target", color: "#22d3ee" },
-                { key: "payment", label: "Realisasi", color: "#22c55e" },
+                { key: "paymentTarget", label: "Target", color: "#4ECDC4" },
+                { key: "payment", label: "Realisasi", color: "#174D55" },
               ]}
               valueFormatter={formatUsd}
             />
@@ -93,7 +93,7 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
 
         <div data-animate-card className="grid gap-2 lg:grid-cols-2">
           <ChartPanel title="Actual Penjualan per Tahun (USD)">
-            <HorizontalBars items={byYear} formatValue={formatUsd} />
+            <HorizontalBars items={byYear} formatValue={formatUsd} tone="yellow" />
           </ChartPanel>
           <ChartPanel title="Actual Penjualan per Company (USD)">
             <HorizontalBars items={rankRecords(records, (record) => record.companyCode, (record) => record.usdValue)} formatValue={formatUsd} />
@@ -107,9 +107,9 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
     <>
       <SourceNotice data-animate-card>Workbook tidak memiliki sheet KPI 2026. Grafik di bawah menampilkan actual ekspor dari sheet Data Gab/Data Ekspor; target tidak tersedia.</SourceNotice>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        <ExportKpi title="Actual Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={Target} />
-        <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={Ship} accent="cyan" />
-        <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={FileSpreadsheet} accent="emerald" />
+        <ExportKpi title="Actual Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={Target02Icon} />
+        <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="cyan" />
+        <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="emerald" />
       </div>
       <div data-animate-card className="grid gap-2 lg:grid-cols-2">
         <ChartPanel title="Actual Penjualan per Tahun (USD)">
@@ -120,7 +120,7 @@ export function RkapView({ records, kpi }: { records: ExportRecord[]; kpi: Expor
         </ChartPanel>
       </div>
       <ChartPanel data-animate-card title="Actual Ekspor Bulanan (USD)">
-        <TrendChart points={monthly} series={[{ key: "sales", label: "Actual", color: "#facc15" }]} valueFormatter={formatUsd} />
+        <TrendChart points={monthly} series={[{ key: "sales", label: "Actual", color: "#FFE66D" }]} valueFormatter={formatUsd} />
       </ChartPanel>
     </>
   );

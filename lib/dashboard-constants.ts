@@ -1,17 +1,5 @@
-import {
-  BarChart3,
-  Building2,
-  Calculator,
-  CalendarDays,
-  LayoutDashboard,
-  MapPin,
-  ReceiptText,
-  Ship,
-  Target,
-  Wallet,
-  Gauge,
-  type LucideIcon,
-} from "lucide-react";
+import { ChartHistogramIcon, Building03Icon, CalculateIcon, DashboardSquare01Icon, Location01Icon, Invoice03Icon, ShipIcon, Target02Icon, Wallet01Icon, DashboardSpeed01Icon } from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 
 import type { ExportDashboardView } from "@/lib/export-dashboard-types";
 import type { WorkbookRole } from "@/lib/monitoring-dashboard-types";
@@ -21,49 +9,49 @@ export const navigationGroups = [
   {
     id: "export",
     label: "Ekspor",
-    icon: Ship,
+    icon: ShipIcon,
     items: [
-      { label: "Overview", icon: LayoutDashboard, href: "/ekspor", view: "export-overview" },
-      { label: "RKAP", icon: Target, href: "/ekspor/rkap", view: "export-rkap" },
-      { label: "Tren Ekspor", icon: BarChart3, href: "/ekspor/tren-ekspor", view: "export-trend" },
-      { label: "Tujuan Ekspor", icon: MapPin, href: "/ekspor/tujuan-ekspor", view: "export-destinations" },
-      { label: "Prognosa", icon: Calculator, href: "/ekspor/prognosa", view: "export-forecast" },
-      { label: "Demurrage", icon: ReceiptText, href: "/ekspor/demurrage", view: "export-demurrage" },
+      { label: "Overview", icon: DashboardSquare01Icon, href: "/ekspor", view: "export-overview" },
+      { label: "RKAP", icon: Target02Icon, href: "/ekspor/rkap", view: "export-rkap" },
+      { label: "Tren Ekspor", icon: ChartHistogramIcon, href: "/ekspor/tren-ekspor", view: "export-trend" },
+      { label: "Tujuan Ekspor", icon: Location01Icon, href: "/ekspor/tujuan-ekspor", view: "export-destinations" },
+      { label: "Prognosa", icon: CalculateIcon, href: "/ekspor/prognosa", view: "export-forecast" },
+      { label: "Demurrage", icon: Invoice03Icon, href: "/ekspor/demurrage", view: "export-demurrage" },
     ],
   },
   {
     id: "non-export",
     label: "Non Semen",
-    icon: Building2,
+    icon: Building03Icon,
     items: [
-      { label: "Overview", icon: LayoutDashboard, href: "/", view: "overview" },
-      { label: "Payment", icon: Wallet, href: "/payment", view: "payment" },
-      { label: "Invoice", icon: ReceiptText, href: "/invoice", view: "invoice" },
+      { label: "Overview", icon: DashboardSquare01Icon, href: "/", view: "overview" },
+      { label: "Payment", icon: Wallet01Icon, href: "/payment", view: "payment" },
+      { label: "Invoice", icon: Invoice03Icon, href: "/invoice", view: "invoice" },
     ],
   },
   {
     id: "kpi",
     label: "KPI",
-    icon: Gauge,
+    icon: DashboardSpeed01Icon,
     items: [
-      { label: "Otobos", icon: Target, href: "/kpi", view: "kpi-otobos" },
-      { label: "Timely Task", icon: Gauge, href: "/kpi/timely", view: "kpi-timely" },
+      { label: "Otobos", icon: Target02Icon, href: "/kpi", view: "kpi-otobos" },
+      { label: "Timely Task", icon: DashboardSpeed01Icon, href: "/kpi/timely", view: "kpi-timely" },
     ],
   },
 ] satisfies {
   id: "export" | "non-export" | "kpi";
   label: string;
-  icon: LucideIcon;
-  items: { label: string; icon: LucideIcon; href: string; view: DashboardView }[];
+  icon: IconSvgElement;
+  items: { label: string; icon: IconSvgElement; href: string; view: DashboardView }[];
 }[];
 
-export const exportViewConfig: Record<ExportDashboardView, { title: string; icon: LucideIcon }> = {
-  "export-overview": { title: "Overview Ekspor", icon: LayoutDashboard },
-  "export-rkap": { title: "RKAP Ekspor", icon: Target },
-  "export-trend": { title: "Tren Ekspor", icon: BarChart3 },
-  "export-destinations": { title: "Tujuan Ekspor", icon: MapPin },
-  "export-forecast": { title: "Prognosa Ekspor", icon: Calculator },
-  "export-demurrage": { title: "Demurrage", icon: ReceiptText },
+export const exportViewConfig: Record<ExportDashboardView, { title: string; icon: IconSvgElement }> = {
+  "export-overview": { title: "Overview Ekspor", icon: DashboardSquare01Icon },
+  "export-rkap": { title: "RKAP Ekspor", icon: Target02Icon },
+  "export-trend": { title: "Tren Ekspor", icon: ChartHistogramIcon },
+  "export-destinations": { title: "Tujuan Ekspor", icon: Location01Icon },
+  "export-forecast": { title: "Prognosa Ekspor", icon: CalculateIcon },
+  "export-demurrage": { title: "Demurrage", icon: Invoice03Icon },
 };
 
 export function isExportDashboardView(view: DashboardView): view is ExportDashboardView {
@@ -84,7 +72,7 @@ export const uploadCards = [
 ];
 
 // Vivid, well-separated colors retain their distinction on the dark dashboard.
-export const palette = ["#22D3EE", "#EF4444", "#F97316", "#FACC15", "#3B82F6", "#E2E8F0", "#22C55E", "#D946EF"];
+export const palette = ["#4ECDC4", "#FF6B6B", "#FFE66D", "#174D55", "#7FDDD6", "#FF9C9C", "#FFF0A7", "#4E8088"];
 export const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 export const monthOrder = new Map(monthLabels.map((month, index) => [month, index + 1]));
 export const periodModeOptions: { value: PeriodMode; label: string }[] = [
