@@ -183,6 +183,34 @@ select option {
   background: rgba(78, 205, 196, 0.2);
 }
 
+/* Pointer-following light on KPI cards; useSpotlightLift tweens the vars. */
+.kpi-spotlight {
+  --spot-color: rgba(247, 255, 247, 0.55);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--spot-o, 0);
+  background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--spot-color), transparent 70%);
+}
+
+.kpi-card:nth-child(4n + 2) .kpi-spotlight {
+  --spot-color: rgba(78, 205, 196, 0.28);
+}
+
+/* Thin sheen along the top edge, as on 21st.dev stat cards. */
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 12% auto;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(247, 255, 247, 0.9), transparent);
+}
+
+.kpi-card:nth-child(4n + 2)::before {
+  background: linear-gradient(90deg, transparent, var(--palette-turquoise), transparent);
+}
+
 ::selection {
   background: rgba(78, 205, 196, 0.35);
   color: var(--palette-teal);
@@ -217,6 +245,81 @@ select option {
   pointer-events: none;
   background: rgba(247, 255, 247, 0.55);
   transform: scale(0);
+}
+
+/* Shine border (21st.dev "shine border"): a bright arc circles the card's edge.
+   Reserved for the one headline KPI on a page. */
+@property --shine-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.kpi-shine {
+  --shine-color: var(--palette-yellow);
+}
+
+.kpi-shine:nth-child(4n + 2),
+.kpi-shine:nth-child(4n + 4) {
+  --shine-color: var(--palette-teal);
+}
+
+.kpi-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--shine-angle), transparent 0 62%, var(--shine-color) 80%, var(--palette-mint) 86%, transparent 94%);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: shine-spin 4.5s linear infinite;
+}
+
+@keyframes shine-spin {
+  to {
+    --shine-angle: 360deg;
+  }
+}
+
+/* KPI gauge ring draws in once on mount; later changes are tweened by GSAP. */
+.kpi-gauge-arc {
+  animation: gauge-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+}
+
+@keyframes gauge-draw {
+  from {
+    stroke-dashoffset: var(--gauge-length);
+  }
+}
+
+/* Partition bar segments grow left to right on mount, one after another. */
+.partition-segment {
+  transform-origin: left center;
+  animation: partition-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(0.15s + var(--segment-index, 0) * 0.08s);
+}
+
+@keyframes partition-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Horizontally scrolling year row in the month filter: thin bar, faded edges. */
+.year-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(23, 77, 85, 0.25) transparent;
+  mask-image: linear-gradient(90deg, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+
+/* Dot grid behind the upload zone, fading out toward the edges. */
+.drop-zone-grid {
+  background-image: radial-gradient(rgba(23, 77, 85, 0.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
 }
 
 /* Animated dashed border for the drag-and-drop upload zone. */
@@ -422,6 +525,9 @@ select option {
   .loader-dot,
   .loader-bar,
   .confetti-piece,
+  .kpi-shine::after,
+  .kpi-gauge-arc,
+  .partition-segment,
   .illustration,
   .illustration * {
     animation: none !important;

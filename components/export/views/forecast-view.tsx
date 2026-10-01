@@ -38,7 +38,7 @@ export function ForecastView({ records, kpi }: { records: ExportViewRecord[]; kp
           <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <ExportKpi title="Target Penerimaan (KPI 2026)" value={formatUsd(totalPaymentTarget)} icon={Target02Icon} />
             <ExportKpi title="Realisasi Penerimaan" value={formatUsd(totalPaymentActual)} icon={Wallet01Icon} accent="emerald" />
-            <ExportKpi title="Sisa Target Penerimaan" value={formatUsd(sisaTargetPenerimaan)} icon={Calendar03Icon} accent="cyan" />
+            <ExportKpi title="Sisa Target Penerimaan" value={formatUsd(sisaTargetPenerimaan)} icon={Calendar03Icon} accent="cyan" highlight />
             <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />
           </div>
           <ChartPanel data-animate-card title="Prognosa Penerimaan: Target vs Realisasi Bulanan (USD)">
@@ -64,7 +64,7 @@ export function ForecastView({ records, kpi }: { records: ExportViewRecord[]; kp
         <>
           <SourceNotice data-animate-card>Workbook tidak memiliki sheet KPI 2026. Prognosa di bawah dihitung dari kolom Rencana Bayar pada sheet detail; target penerimaan tidak tersedia.</SourceNotice>
           <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />
+            <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" highlight />
             <ExportKpi title="Sudah Ada Rencana Bayar" value={formatUsd(total(planned, (record) => record.usdValue))} icon={Calendar03Icon} />
             <ExportKpi title="Belum Ada Rencana Bayar" value={formatUsd(total(open.filter((record) => !record.plannedPaymentDate), (record) => record.usdValue))} icon={Wallet01Icon} accent="cyan" />
             <ExportKpi title="Invoice Terbuka" value={open.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="emerald" />

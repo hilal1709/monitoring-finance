@@ -211,6 +211,17 @@ Think of it like a human reviewing their journal and updating their mental model
 
 The goal: Be helpful without being annoying. Check in a few times a day, do useful background work, but respect quiet time.
 
+## UI reference: 21st.dev
+
+21st.dev is the reference library for new or upgraded UI. Use the `magic` MCP server (`.mcp.json`; needs `TWENTYFIRST_API_KEY` in the environment) — `21st_magic_component_inspiration` / `_builder` / `_refiner` — or `npx shadcn@latest add "https://21st.dev/r/<author>/<component>"`. Treat what comes back as a starting point, never paste it as-is:
+
+- **Theme stays ours.** Remap every color to the palette tokens in `app/globals.css`: `bg-card`, `bg-background`, `text-teal`, `bg-turquoise`, `text-turquoise-ink`, `text-coral-ink`, `bg-coral`, `bg-sun`, `border-border`, `bg-sidebar`/`text-sidebar-foreground`, `shadow-[var(--soft-shadow)]`, `rounded-*` from `--radius-*`. No raw hex, no `zinc-*`/`slate-*`/`gray-*`/`indigo-*`/purple gradients, no dark-mode-only styling.
+- **shadcn/ui is the foundation.** Build from the primitives in `components/ui/` (Button, Card, Badge, Tooltip, Progress, Dialog, …; style `radix-nova` per `components.json`). If a 21st component needs a shadcn primitive we don't have, add it with `npx shadcn@latest add <name>` instead of hand-rolling one.
+- **Icons:** replace lucide with `Icon` from `components/ui/icon.tsx` + `@hugeicons/core-free-icons`.
+- **Animation uses GSAP, always lazy-loaded through `lib/gsap.ts`.** Call `withMotion(gsap => …)` (skips reduced-motion users) or `withGsap` from handlers/effects, or `loadGsap()` when you need the promise. Never `import "gsap"` or `@gsap/react` directly — a static import puts ~70 KB back into every page's initial JS and drops the mobile Lighthouse score. Translate any `framer-motion`/`motion` code to GSAP — do not install framer-motion. The older WAAPI helpers in `lib/motion.ts` stay for components not yet upgraded.
+- Keep UI copy in Bahasa Indonesia and keep existing component props/APIs so callers don't change.
+- New components go in `components/ui/`; add `"use client"` only when needed.
+
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.

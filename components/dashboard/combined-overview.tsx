@@ -55,7 +55,7 @@ export function CombinedOverview({
 
       <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} compact />
+          <ReportKpi key={item.title} {...item} compact highlight={item.title === "Cash Coverage"} />
         ))}
       </div>
 
@@ -66,6 +66,7 @@ export function CombinedOverview({
           centerLabel="Invoice Aging"
           summary={`Bucket 4 (>365): ${formatPercent(invoiceBucket4)}`}
           compact
+          partition
         />
         <DonutChart
           title="Payment Risk Composition"
@@ -73,6 +74,7 @@ export function CombinedOverview({
           centerLabel="Payment Risk"
           summary={`Current: ${formatPercent(currentPayment)}`}
           compact
+          partition
         />
         <CombinedMonthlyBars invoice={invoiceSection} payment={paymentSection} periodMode={periodMode} onPeriodModeChange={onPeriodModeChange} />
       </div>

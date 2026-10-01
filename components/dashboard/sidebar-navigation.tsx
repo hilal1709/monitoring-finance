@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/ui/icon";
-import { animate, autoHeight, ease, prefersReducedMotion } from "@/lib/motion";
+import { loadGsap, withGsap } from "@/lib/gsap";
+import { prefersReducedMotion } from "@/lib/motion";
 import { useIsomorphicLayoutEffect } from "@/lib/use-reveal-animation";
 import { cn } from "@/lib/utils";
 import { navigationGroups } from "@/lib/dashboard-constants";
@@ -32,13 +33,18 @@ export function SidebarNavigation({
   const navRef = useRef<HTMLElement>(null);
   const pillRef = useRef<HTMLSpanElement>(null);
 
-  // Intro: items slide in once per session.
+  // Intro: items are hidden before paint, then slide in once GSAP arrives.
   useIsomorphicLayoutEffect(() => {
     if (navIntroPlayed || prefersReducedMotion()) return;
-    const items = navRef.current?.querySelectorAll<HTMLElement>("[data-nav-item]");
-    if (!items?.length) return;
+    const items = Array.from(navRef.current?.querySelectorAll<HTMLElement>("[data-nav-item]") ?? []);
+    if (!items.length) return;
     navIntroPlayed = true;
-    animate(items, [{ opacity: 0, translate: "-14px 0" }, { opacity: 1, translate: "0 0" }], { duration: 0.4, stagger: 0.04, ease: ease.out });
+    for (const item of items) Object.assign(item.style, { opacity: "0", transform: "translateX(-14px)" });
+    loadGsap()
+      .then((gsap) => gsap.to(items, { opacity: 1, x: 0, duration: 0.4, stagger: 0.04, ease: "power2.out", clearProps: "opacity,transform" }))
+      .catch(() => {
+        for (const item of items) Object.assign(item.style, { opacity: "", transform: "" });
+      });
   }, []);
 
   // Active pill: measure the active link and glide there from the previous spot.
@@ -48,19 +54,22 @@ export function SidebarNavigation({
     if (!nav || !pill) return;
     const active = nav.querySelector<HTMLElement>('[data-active-link="true"]');
     if (!active || active.closest('[data-nav-panel][aria-hidden="true"]')) {
-      animate(pill, [{ opacity: 0 }], { duration: 0.2, persist: true });
+      withGsap((gsap) => gsap.to(pill, { opacity: 0, duration: 0.2, overwrite: "auto" }));
       return;
     }
     // offset* is relative to the (positioned) nav and ignores the intro's transforms.
     const target = { y: active.offsetTop, height: active.offsetHeight };
     Object.assign(pill.style, { left: `${active.offsetLeft}px`, width: `${active.offsetWidth}px` });
-    const end = { translate: `0 ${target.y}px`, height: `${target.height}px`, opacity: 1 };
-    if (lastPill && !prefersReducedMotion()) {
-      animate(pill, [{ translate: `0 ${lastPill.y}px`, height: `${lastPill.height}px` }, end], { duration: 0.5, ease: ease.back, persist: true });
-    } else {
-      Object.assign(pill.style, { translate: end.translate, height: end.height, opacity: "1" });
-    }
+    const from = lastPill;
     lastPill = target;
+    if (from && !prefersReducedMotion()) {
+      withGsap((gsap) => {
+        gsap.fromTo(pill, { y: from.y, height: from.height }, { y: target.y, height: target.height, duration: 0.5, ease: "back.out(1.4)", overwrite: "auto" });
+        gsap.to(pill, { opacity: 1, duration: 0.2, overwrite: "auto" });
+      });
+    } else {
+      Object.assign(pill.style, { transform: `translateY(${target.y}px)`, height: `${target.height}px`, opacity: "1" });
+    }
   }
 
   useIsomorphicLayoutEffect(placePill, [view]);
@@ -72,17 +81,23 @@ export function SidebarNavigation({
       requestAnimationFrame(placePill);
       return;
     }
-    if (willOpen) {
-      animate(panel, [{ height: "0px", opacity: 0 }, { height: autoHeight(panel), opacity: 1 }], { duration: 0.35, ease: ease.out, onComplete: placePill });
-      animate(panel.firstElementChild?.children, [{ opacity: 0, translate: "-8px 0" }, { opacity: 1, translate: "0 0" }], { duration: 0.3, stagger: 0.04, delay: 0.08 });
-    } else {
-      animate(panel, [{ height: autoHeight(panel), opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 0.28, ease: ease.in, onComplete: placePill });
-    }
+    withGsap((gsap) => {
+      if (willOpen) {
+        gsap.fromTo(panel, { height: 0, opacity: 0 }, { height: "auto", opacity: 1, duration: 0.35, ease: "power2.out", overwrite: "auto", clearProps: "height,opacity", onComplete: placePill });
+        gsap.from(panel.firstElementChild?.children ?? [], { opacity: 0, x: -8, duration: 0.3, stagger: 0.04, delay: 0.08, clearProps: "opacity,transform" });
+      } else {
+        gsap.fromTo(panel, { height: panel.scrollHeight, opacity: 1 }, { height: 0, opacity: 0, duration: 0.28, ease: "power2.in", overwrite: "auto", clearProps: "height,opacity", onComplete: placePill });
+      }
+    });
   }
 
   return (
     <nav ref={navRef} className="relative flex flex-col gap-3 text-sm">
-      <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 z-0 rounded-md bg-turquoise opacity-0 shadow-[0_6px_16px_-6px_rgba(78,205,196,0.9)]" />
+      <span
+        ref={pillRef}
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-0 z-0 rounded-md bg-turquoise opacity-0 shadow-[0_6px_16px_-6px_rgba(78,205,196,0.9)] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-sun"
+      />
       {navigationGroups.map((group) => {
         const expanded = openGroups[group.id];
         const groupActive = group.items.some((item) => item.view === view);

@@ -135,8 +135,8 @@ export function ReportFrame({
       </div>
 
       <div className={cn("grid gap-2 px-2 pb-2 sm:grid-cols-2", isInvoice ? "lg:grid-cols-5" : "lg:grid-cols-4") }>
-        {kpis.map((item) => (
-          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact />
+        {kpis.map((item, index) => (
+          <ReportKpi key={item.title} {...item} accent={isInvoice ? "amber" : "cyan"} compact highlight={index === 0} />
         ))}
       </div>
 
@@ -145,7 +145,7 @@ export function ReportFrame({
       <div className="grid gap-2 px-2 pb-2 md:grid-cols-2 lg:grid-cols-3">
         {isInvoice ? (
           <>
-            <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" compact />
+            <DonutChart title="Outstanding Aging by Bucket" items={activeSection.statusMix} centerLabel="Aging" compact partition />
             <HorizontalBars title="Top Customers by Outstanding" items={activeSection.topCustomers} maxItems={6} tone="coral" />
             <DonutChart title="Outstanding by Invoice Type" items={activeSection.invoiceTypes} centerLabel="Type" compact />
           </>
@@ -153,7 +153,7 @@ export function ReportFrame({
           <>
             <StatusBars title="Payment Aging by Risk" items={activeSection.statusMix} />
             <HorizontalBars title="Top Customers by Payment" items={activeSection.topCustomers} maxItems={5} />
-            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} compact />
+            <DonutChart title="Payment Risk Composition" items={activeSection.statusMix} centerLabel={formatPercent(primaryShare)} compact partition />
           </>
         )}
       </div>

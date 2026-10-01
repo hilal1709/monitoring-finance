@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { RollingText } from "@/components/ui/rolling-text";
 import { prefersReducedMotion } from "@/lib/motion";
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
@@ -61,11 +62,17 @@ export function parseDisplayNumber(text: string): { prefix: string; number: numb
   return { prefix, number, decimals, suffix, locale: idStyle ? "id" : "en" };
 }
 
-/** Animates the numeric portion of an already-formatted display string. */
+/**
+ * Shows an already-formatted display string; when it changes, the digits that
+ * differ roll into place (up when the number grew, down when it shrank).
+ */
 export function AnimatedDisplay({ text, className }: { text: string; className?: string }) {
-  const parsed = parseDisplayNumber(text);
-  if (!parsed) return <span className={className}>{text}</span>;
-  const { prefix, number, decimals, suffix, locale } = parsed;
-  const formatter = new Intl.NumberFormat(locale === "id" ? "id-ID" : "en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  return <AnimatedNumber value={number} className={className} format={(value) => `${prefix}${formatter.format(value)}${suffix}`} />;
+  // Derive the roll direction during render when the text changes.
+  const [last, setLast] = useState({ text, direction: "up" as "up" | "down" });
+  if (last.text !== text) {
+    const before = parseDisplayNumber(last.text)?.number ?? 0;
+    const after = parseDisplayNumber(text)?.number ?? 0;
+    setLast({ text, direction: after < before ? "down" : "up" });
+  }
+  return <RollingText text={text} direction={last.direction} className={className} />;
 }

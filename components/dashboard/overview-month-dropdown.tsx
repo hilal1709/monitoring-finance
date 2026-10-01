@@ -35,6 +35,7 @@ export function OverviewMonthDropdown({
   const [open, setOpen] = useState(false);
   const [activeYear, setActiveYear] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const yearsRef = useRef<HTMLDivElement>(null);
 
   // Keep the active year valid: prefer the year of the latest selection, else the most recent year.
   const resolvedYear =
@@ -42,6 +43,25 @@ export function OverviewMonthDropdown({
       ? activeYear
       : ((selected.length > 0 ? selected[selected.length - 1].split(" ")[1] : null) ?? years[years.length - 1] ?? null);
   const monthsForYear = resolvedYear ? (yearMap.get(resolvedYear) ?? []) : [];
+
+  // Keep the active year centred in the scrollable year row: jump there when
+  // the panel opens (after the popover has laid out), glide on year changes.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    const justOpened = open && !wasOpen.current;
+    wasOpen.current = open;
+    if (!open) return;
+    const frame = requestAnimationFrame(() => {
+      const row = yearsRef.current;
+      const active = row?.querySelector<HTMLElement>('[data-active="true"]');
+      if (!row || !active) return;
+      const rowBox = row.getBoundingClientRect();
+      const activeBox = active.getBoundingClientRect();
+      const target = row.scrollLeft + activeBox.left - rowBox.left - (row.clientWidth - activeBox.width) / 2;
+      row.scrollTo({ left: Math.max(0, target), behavior: justOpened || prefersReducedMotion() ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, resolvedYear]);
 
   // Month chips pop in whenever the year changes or the panel opens.
   useEffect(() => {
@@ -80,17 +100,19 @@ export function OverviewMonthDropdown({
         </div>
 
         {years.length > 0 && resolvedYear ? (
-          <SegmentedControl
-            className="mb-3"
-            size="xs"
-            ariaLabel="Pilih tahun"
-            value={resolvedYear}
-            onChange={setActiveYear}
-            options={years.map((year) => {
-              const activeCount = (yearMap.get(year) ?? []).filter((label) => selectedSet.has(label)).length;
-              return { value: year, label: activeCount > 0 ? `${year} (${activeCount})` : year };
-            })}
-          />
+          // Many years don't fit the panel width: scroll the row sideways, edges fade out.
+          <div ref={yearsRef} className="year-scroller -mx-3 mb-3 overflow-x-auto px-3 pb-1">
+            <SegmentedControl
+              size="xs"
+              ariaLabel="Pilih tahun"
+              value={resolvedYear}
+              onChange={setActiveYear}
+              options={years.map((year) => {
+                const activeCount = (yearMap.get(year) ?? []).filter((label) => selectedSet.has(label)).length;
+                return { value: year, label: activeCount > 0 ? `${year} (${activeCount})` : year };
+              })}
+            />
+          </div>
         ) : null}
 
         <div ref={gridRef} className="grid grid-cols-3 gap-2 text-xs">

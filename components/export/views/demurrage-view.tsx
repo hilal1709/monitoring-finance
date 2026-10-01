@@ -14,7 +14,7 @@ export function DemurrageView({ records }: { records: ExportViewRecord[] }) {
     <>
       <SourceNotice data-animate-card>Workbook tidak memiliki kolom demurrage/despatch. Agar halaman tetap berguna tanpa membuat angka palsu, visual di bawah hanya menampilkan data selisih kurs yang memang tersedia.</SourceNotice>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        <ExportKpi title="Dampak Selisih Kurs" value={formatIdr(total(withImpact, (record) => record.exchangeImpact))} icon={DollarCircleIcon} />
+        <ExportKpi title="Dampak Selisih Kurs" value={formatIdr(total(withImpact, (record) => record.exchangeImpact))} icon={DollarCircleIcon} highlight />
         <ExportKpi title="Transaksi dengan Selisih" value={withImpact.length.toLocaleString("id-ID")} icon={Invoice03Icon} accent="cyan" />
         <ExportKpi title="Company Terdampak" value={new Set(withImpact.map((record) => record.companyCode)).size.toLocaleString("id-ID")} icon={ShipIcon} accent="emerald" />
       </div>

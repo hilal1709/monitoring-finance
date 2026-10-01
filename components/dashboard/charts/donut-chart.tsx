@@ -2,13 +2,29 @@
 
 import { DoughnutChart } from "@/components/charts";
 import { ChartTitle } from "@/components/dashboard/charts/chart-primitives";
+import { PartitionBar } from "@/components/ui/partition-bar";
 import { rankedItemTooltip } from "@/lib/dashboard-data";
 import { formatPercent } from "@/lib/dashboard-format";
 import { palette } from "@/lib/dashboard-constants";
 import { cn } from "@/lib/utils";
 import type { RankedItem } from "@/lib/monitoring-dashboard-types";
 
-export function DonutChart({ title, items, centerLabel, summary, compact = false }: { title: string; items: RankedItem[]; centerLabel?: string; summary?: string; compact?: boolean }) {
+export function DonutChart({
+  title,
+  items,
+  centerLabel,
+  summary,
+  compact = false,
+  partition = false,
+}: {
+  title: string;
+  items: RankedItem[];
+  centerLabel?: string;
+  summary?: string;
+  compact?: boolean;
+  /** Adds a proportional segment bar under the chart (for aging/risk mixes). */
+  partition?: boolean;
+}) {
   const visible = items.slice(0, 8);
   const colors = visible.map((_, index) => palette[index % palette.length]);
 
@@ -39,6 +55,11 @@ export function DonutChart({ title, items, centerLabel, summary, compact = false
           ))}
         </div>
       </div>
+      {partition ? (
+        <div className="px-3 pb-3">
+          <PartitionBar items={visible.map((item) => ({ label: item.label, share: item.share, tooltip: rankedItemTooltip(item) }))} colors={colors} />
+        </div>
+      ) : null}
     </div>
   );
 }

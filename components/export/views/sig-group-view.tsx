@@ -12,7 +12,7 @@ export function SigGroupView({ records, periodLabel }: { records: ExportViewReco
   return (
     <>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <ExportKpi title={`Penjualan ${periodLabel}`} value={formatUsd(total(records, (record) => record.usdValue))} icon={DollarCircleIcon} />
+        <ExportKpi title={`Penjualan ${periodLabel}`} value={formatUsd(total(records, (record) => record.usdValue))} icon={DollarCircleIcon} highlight />
         <ExportKpi title={`Tonase ${periodLabel}`} value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="cyan" />
         <ExportKpi title={`Penerimaan ${periodLabel}`} value={formatUsd(total(records.filter(isPaid), (record) => record.usdValue))} icon={Wallet01Icon} accent="emerald" />
         <ExportKpi title={`Piutang ${periodLabel}`} value={formatUsd(total(records.filter((record) => !isPaid(record)), (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />

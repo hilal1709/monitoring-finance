@@ -19,7 +19,7 @@ export function DestinationsView({ records }: { records: ExportViewRecord[] }) {
   return (
     <>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <ExportKpi title="Jumlah Tujuan" value={new Set(records.map((record) => record.destination)).size.toLocaleString("id-ID")} icon={Location01Icon} />
+        <ExportKpi title="Jumlah Tujuan" value={new Set(records.map((record) => record.destination)).size.toLocaleString("id-ID")} icon={Location01Icon} highlight />
         <ExportKpi title="Nilai Ekspor" value={formatUsd(total(records, (record) => record.usdValue))} icon={DollarCircleIcon} accent="cyan" />
         <ExportKpi title="Volume Ekspor" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="emerald" />
         <ExportKpi title="Top Tujuan" value={destinations[0]?.label ?? "-"} icon={Target02Icon} accent="red" />

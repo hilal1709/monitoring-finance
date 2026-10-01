@@ -15,7 +15,7 @@ export function OverviewView({ records }: { records: ExportViewRecord[] }) {
   return (
     <>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <ExportKpi title="Total Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={DollarCircleIcon} />
+        <ExportKpi title="Total Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={DollarCircleIcon} highlight />
         <ExportKpi title="Total Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="cyan" />
         <ExportKpi title="Penerimaan" value={formatUsd(total(paid, (record) => record.usdValue))} icon={Wallet01Icon} accent="emerald" />
         <ExportKpi title="Piutang Terbuka" value={formatUsd(total(open, (record) => record.usdValue))} icon={Invoice03Icon} accent="red" />

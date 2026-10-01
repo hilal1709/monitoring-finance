@@ -24,9 +24,13 @@ function kpiComparisonBars(kpi: ExportKpiSummary, field: "sales" | "payment"): K
   }));
 }
 
+function kpiRatio(actual: number, target: number) {
+  return target ? (actual / target) * 100 : 0;
+}
+
 function kpiRealisasiPct(actual: number, target: number) {
   if (!target) return "-";
-  return `${Math.round((actual / target) * 100)}%`;
+  return `${Math.round(kpiRatio(actual, target))}%`;
 }
 
 export function RkapView({ records, kpi }: { records: ExportViewRecord[]; kpi: ExportKpiSummary | null }) {
@@ -62,8 +66,8 @@ export function RkapView({ records, kpi }: { records: ExportViewRecord[]; kpi: E
         </div>
 
         <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <ExportKpi title="% Realisasi Penjualan" value={kpiRealisasiPct(totalSalesActual, totalSalesTarget)} icon={Target02Icon} />
-          <ExportKpi title="% Realisasi Penerimaan" value={kpiRealisasiPct(totalPaymentActual, totalPaymentTarget)} icon={ChartLineData01Icon} accent="cyan" />
+          <ExportKpi title="% Realisasi Penjualan" value={kpiRealisasiPct(totalSalesActual, totalSalesTarget)} icon={Target02Icon} gauge={kpiRatio(totalSalesActual, totalSalesTarget)} highlight />
+          <ExportKpi title="% Realisasi Penerimaan" value={kpiRealisasiPct(totalPaymentActual, totalPaymentTarget)} icon={ChartLineData01Icon} accent="cyan" gauge={kpiRatio(totalPaymentActual, totalPaymentTarget)} />
           <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="emerald" />
           <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="red" />
         </div>
@@ -107,7 +111,7 @@ export function RkapView({ records, kpi }: { records: ExportViewRecord[]; kpi: E
     <>
       <SourceNotice data-animate-card>Workbook tidak memiliki sheet KPI 2026. Grafik di bawah menampilkan actual ekspor dari sheet Data Gab/Data Ekspor; target tidak tersedia.</SourceNotice>
       <div data-animate-card className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        <ExportKpi title="Actual Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={Target02Icon} />
+        <ExportKpi title="Actual Penjualan" value={formatUsd(total(records, (record) => record.usdValue))} icon={Target02Icon} highlight />
         <ExportKpi title="Actual Tonase" value={formatTonnage(total(records, (record) => record.tonnage))} icon={ShipIcon} accent="cyan" />
         <ExportKpi title="Jumlah Transaksi" value={records.length.toLocaleString("id-ID")} icon={Xls01Icon} accent="emerald" />
       </div>
