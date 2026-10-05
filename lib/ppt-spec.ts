@@ -6,7 +6,7 @@ import "server-only";
 // Every number, chart and explanation in the decks is computed here with the
 // SAME helpers the web dashboard uses (lib/export-dashboard-data.ts,
 // lib/dashboard-data.ts and their formatters), so the PPT mirrors the web views
-// one-to-one. lib/ppt_render.py only draws what this spec describes.
+// one-to-one. lib/ppt-render.ts only draws what this spec describes.
 // ---------------------------------------------------------------------------
 
 import { isPaid, monthlyPoints, rankRecords, total } from "@/lib/export-dashboard-data";
@@ -30,7 +30,7 @@ const TURQUOISE = "#4ECDC4";
 const CORAL = "#FF6B6B";
 const YELLOW = "#FFE66D";
 
-// ── Spec types (mirrored by lib/ppt_render.py) ──────────────────────────────
+// ── Spec types (drawn by lib/ppt-render.ts) ─────────────────────────────────
 
 export type PptKpi = { label: string; value: string; sub?: string };
 
@@ -48,11 +48,12 @@ export type PptChart =
       title: string;
       categories: string[];
       values: number[];
-      labels: string[];
+      /** Excel number format for the bar value labels (see `labelFormat`). */
+      labelFormat: string;
       color: string;
       negativeColor: string;
     }
-  | { kind: "line"; title: string; categories: string[]; series: PptSeries[]; axisFormat: string; lastLabel?: string }
+  | { kind: "line"; title: string; categories: string[]; series: PptSeries[]; axisFormat: string }
   | { kind: "groupedHbar"; title: string; categories: string[]; series: PptSeries[]; axisFormat: string }
   | { kind: "donut"; title: string; categories: string[]; values: number[]; colors: string[] };
 
@@ -86,10 +87,26 @@ function axisFormat(unit: Unit, values: (number | null)[]) {
   return "#,##0";
 }
 
+type LabelUnit = "usd" | "ton" | "idr" | "rp" | "pctDelta";
+
+/**
+ * Excel number formats that render bar labels like the web formatters
+ * (formatUsd, formatTonnage, formatIdr, formatCurrency, formatDeltaPercent).
+ * PowerPoint applies them per value, so each bar picks its own K/M/B scale.
+ */
+const LABEL_FORMATS: Record<LabelUnit, string> = {
+  usd: '[>=1000000000]"USD "#,##0.0,,,"B";[>=1000000]"USD "#,##0.0,,"M";"USD "#,##0.0,"K"',
+  ton: '[>=1000000]#,##0.0,,"M MT";[>=1000]#,##0.0,"K MT";#,##0" MT"',
+  // Negative IDR impacts fall through to the last section, shown in millions.
+  idr: '[>=1000000000]"Rp "#,##0.0,,,"B";[>=1000000]"Rp "#,##0.0,,"M";"Rp "#,##0.0,,"M"',
+  rp: '[>=1000000000000]"Rp "#,##0.00,,,,"T";[>=1000000000]"Rp "#,##0.0,,,"M";"Rp "#,##0.0,,"jt"',
+  pctDelta: "+0%;-0%;0%",
+};
+
 function hbar(
   title: string,
   items: { label: string; value: number }[],
-  format: (value: number) => string,
+  unit: LabelUnit,
   tone: "turquoise" | "coral" | "yellow" | "teal" = "turquoise",
 ): PptChart {
   const color = { turquoise: TURQUOISE, coral: CORAL, yellow: YELLOW, teal: TEAL }[tone];
@@ -99,7 +116,7 @@ function hbar(
     title,
     categories: items.map((item) => item.label),
     values: items.map((item) => item.value),
-    labels: items.map((item) => format(item.value)),
+    labelFormat: LABEL_FORMATS[unit],
     color,
     negativeColor: tone === "coral" ? TEAL : CORAL,
   };
@@ -110,11 +127,9 @@ function line(
   categories: string[],
   series: PptSeries[],
   unit: Unit,
-  format?: (value: number) => string,
 ): PptChart {
   // TrendChart convention: the first series is the emphasised headline one.
   const styled = series.map((item, index) => ({ ...item, emphasis: item.emphasis ?? index === 0 }));
-  const first = styled[0]?.values.at(-1);
 
   return {
     kind: "line",
@@ -122,7 +137,6 @@ function line(
     categories,
     series: styled,
     axisFormat: axisFormat(unit, styled.flatMap((item) => item.values)),
-    lastLabel: format && first != null ? format(first) : undefined,
   };
 }
 
@@ -318,7 +332,7 @@ export function buildExportPptSpec(
         { label: "Actual Tonase", value: formatTonnage(totalTon) },
         { label: "Jumlah Transaksi", value: formatNumber(records.length) },
       ],
-      charts: [line("Actual Ekspor Bulanan (USD)", monthLabels, [{ name: "Actual", values: monthly.map((point) => point.sales), color: YELLOW }], "usd", formatUsd)],
+      charts: [line("Actual Ekspor Bulanan (USD)", monthLabels, [{ name: "Actual", values: monthly.map((point) => point.sales), color: YELLOW }], "usd")],
       bullets: compact<string>([
         `Actual penjualan ${periodText}: ${formatUsd(totalSales)} (${formatTonnage(totalTon)}).`,
         peak ? `Penjualan bulanan tertinggi pada ${peak.label}: ${formatUsd(peak.sales)}.` : null,
@@ -333,8 +347,8 @@ export function buildExportPptSpec(
     type: "content",
     title: "RKAP — Actual per Tahun & Company",
     charts: [
-      hbar("Actual Penjualan per Tahun (USD)", byYear, formatUsd, kpi ? "yellow" : "turquoise"),
-      hbar("Actual Penjualan per Company (USD)", companies, formatUsd),
+      hbar("Actual Penjualan per Tahun (USD)", byYear, "usd", kpi ? "yellow" : "turquoise"),
+      hbar("Actual Penjualan per Company (USD)", companies, "usd"),
     ],
     bullets: compact<string>([
       yearLast && yearPrev && changeText(yearLast.value, yearPrev.value)
@@ -360,8 +374,8 @@ export function buildExportPptSpec(
         { label: "Jumlah Kapal", value: formatNumber(new Set(records.map((record) => record.vesselName)).size) },
       ],
       charts: [
-        line("Tren Nilai Ekspor Bulanan (USD)", monthLabels, [{ name: "Nilai Ekspor", values: monthly.map((point) => point.sales), color: YELLOW }], "usd", formatUsd),
-        line("Tren Volume Ekspor Bulanan (MT)", monthLabels, [{ name: "Tonase", values: monthly.map((point) => point.tonnage), color: TEAL }], "ton", formatTonnage),
+        line("Tren Nilai Ekspor Bulanan (USD)", monthLabels, [{ name: "Nilai Ekspor", values: monthly.map((point) => point.sales), color: YELLOW }], "usd"),
+        line("Tren Volume Ekspor Bulanan (MT)", monthLabels, [{ name: "Tonase", values: monthly.map((point) => point.tonnage), color: TEAL }], "ton"),
       ],
       bullets: compact<string>([
         latest && previous && changeText(latest.sales, previous.sales)
@@ -375,8 +389,8 @@ export function buildExportPptSpec(
       type: "content",
       title: "TREN EKSPOR — Produk & Kontribusi Company",
       charts: [
-        hbar("Tren Produk berdasarkan Volume (MT)", products, formatTonnage, "yellow"),
-        hbar("Kontribusi Company (USD)", companies, formatUsd),
+        hbar("Tren Produk berdasarkan Volume (MT)", products, "ton", "yellow"),
+        hbar("Kontribusi Company (USD)", companies, "usd"),
       ],
       bullets: compact<string>([
         productsAll[0] ? `${productsAll[0].label} mendominasi volume: ${formatTonnage(productsAll[0].value)} (${formatPercent(share(productsAll[0].value, totalTon))}).` : null,
@@ -398,8 +412,8 @@ export function buildExportPptSpec(
         { label: "Top Tujuan", value: destinationsAll[0]?.label ?? "-" },
       ],
       charts: [
-        hbar("Tujuan Ekspor berdasarkan Nilai (USD)", rankRecords(records, (record) => record.destination, usd, 10), formatUsd, "coral"),
-        hbar("Tujuan Ekspor berdasarkan Volume (MT)", destinationsByTon, formatTonnage, "teal"),
+        hbar("Tujuan Ekspor berdasarkan Nilai (USD)", rankRecords(records, (record) => record.destination, usd, 10), "usd", "coral"),
+        hbar("Tujuan Ekspor berdasarkan Volume (MT)", destinationsByTon, "ton", "teal"),
       ],
       bullets: compact<string>([
         destinationsAll[0] ? `${destinationsAll[0].label} tujuan utama: ${formatUsd(destinationsAll[0].value)} (${formatPercent(share(destinationsAll[0].value, totalSales))} nilai ekspor).` : null,
@@ -413,8 +427,8 @@ export function buildExportPptSpec(
       type: "content",
       title: "TUJUAN EKSPOR — Buyer & Produk",
       charts: [
-        hbar("Buyer Ekspor Terbesar (USD)", buyers, formatUsd),
-        hbar("Produk per Tujuan (MT)", rankRecords(records, (record) => record.product, ton, 7), formatTonnage, "yellow"),
+        hbar("Buyer Ekspor Terbesar (USD)", buyers, "usd"),
+        hbar("Produk per Tujuan (MT)", rankRecords(records, (record) => record.product, ton, 7), "ton", "yellow"),
       ],
       bullets: compact<string>([
         buyersAll[0] ? `Buyer terbesar: ${buyersAll[0].label} (${formatUsd(buyersAll[0].value)}, ${formatPercent(share(buyersAll[0].value, totalSales))}).` : null,
@@ -466,8 +480,8 @@ export function buildExportPptSpec(
         type: "content",
         title: "PROGNOSA — Piutang Terbuka",
         charts: [
-          hbar("Piutang Terbuka per Company (USD)", openByCompany, formatUsd),
-          hbar("Aging Piutang Terbuka (USD)", aging, formatUsd, "coral"),
+          hbar("Piutang Terbuka per Company (USD)", openByCompany, "usd"),
+          hbar("Aging Piutang Terbuka (USD)", aging, "usd", "coral"),
         ],
         bullets: compact<string>([openCompanyBullet, agingBullet]),
       },
@@ -487,8 +501,8 @@ export function buildExportPptSpec(
           { label: "Invoice Terbuka", value: formatNumber(open.length) },
         ],
         charts: [
-          hbar("Prognosa Penerimaan berdasarkan Rencana Bayar (USD)", plannedByMonth, formatUsd),
-          hbar("Aging Piutang Terbuka (USD)", aging, formatUsd),
+          hbar("Prognosa Penerimaan berdasarkan Rencana Bayar (USD)", plannedByMonth, "usd"),
+          hbar("Aging Piutang Terbuka (USD)", aging, "usd"),
         ],
         bullets: compact<string>([
           totalOpen ? `${formatPercent(share(plannedTotal, totalOpen))} piutang terbuka (${formatUsd(plannedTotal)}) sudah memiliki rencana bayar.` : null,
@@ -499,7 +513,7 @@ export function buildExportPptSpec(
       {
         type: "content",
         title: "PROGNOSA — Piutang Terbuka per Company",
-        charts: [hbar("Piutang Terbuka per Company (USD)", openByCompany, formatUsd)],
+        charts: [hbar("Piutang Terbuka per Company (USD)", openByCompany, "usd")],
         bullets: compact<string>([openCompanyBullet, `Total ${formatNumber(open.length)} invoice terbuka senilai ${formatUsd(totalOpen)}.`]),
       },
     );
@@ -521,8 +535,8 @@ export function buildExportPptSpec(
       { label: "Company Terdampak", value: formatNumber(new Set(withImpact.map((record) => record.companyCode)).size) },
     ],
     charts: [
-      hbar("Dampak Selisih Kurs per Company (IDR)", impactCompany, formatIdr),
-      hbar("Dampak Selisih Kurs per Buyer (IDR)", impactBuyer, formatIdr, "coral"),
+      hbar("Dampak Selisih Kurs per Company (IDR)", impactCompany, "idr"),
+      hbar("Dampak Selisih Kurs per Buyer (IDR)", impactBuyer, "idr", "coral"),
     ],
     bullets: compact<string>([
       withImpact.length
@@ -551,7 +565,8 @@ export function buildExportPptSpec(
     {
       type: "title",
       title: `LAPORAN KINERJA EKSPOR\n${last ?? ""}`.trim(),
-      subtitle: `UNIT of COMMERCIAL FINANCE 2  |  Periode ${periodText}  |  ${formatNumber(records.length)} transaksi`,
+      subtitle: `UNIT of COMMERCIAL FINANCE 2
+Periode ${periodText}  |  ${formatNumber(records.length)} transaksi`,
     },
     {
       type: "summary",
@@ -571,7 +586,7 @@ export function buildExportPptSpec(
           { name: "Penerimaan", values: monthly.map((point) => point.payment), color: TEAL },
           { name: "Piutang", values: monthly.map((point) => point.outstanding), color: CORAL },
         ], "usd"),
-        hbar("Penjualan per Operating Company (USD)", companies, formatUsd),
+        hbar("Penjualan per Operating Company (USD)", companies, "usd"),
       ],
       bullets: overviewBulletsA,
     },
@@ -579,8 +594,8 @@ export function buildExportPptSpec(
       type: "content",
       title: "OVERVIEW — Tujuan & Produk Ekspor",
       charts: [
-        hbar("Tujuan Ekspor Terbesar (USD)", destinationsTop6, formatUsd, "coral"),
-        hbar("Produk Ekspor (MT)", products, formatTonnage, "yellow"),
+        hbar("Tujuan Ekspor Terbesar (USD)", destinationsTop6, "usd", "coral"),
+        hbar("Produk Ekspor (MT)", products, "ton", "yellow"),
       ],
       bullets: overviewBulletsB,
     },
@@ -665,12 +680,12 @@ export function buildReportPptSpec(
   const row1Charts: PptChart[] = isInvoice
     ? [
         donut("Outstanding Aging by Bucket", section.statusMix),
-        hbar("Top Customers by Outstanding", section.topCustomers.slice(0, 6), fc, "coral"),
+        hbar("Top Customers by Outstanding", section.topCustomers.slice(0, 6), "rp", "coral"),
         donut("Outstanding by Invoice Type", section.invoiceTypes),
       ]
     : [
-        hbar("Payment Aging by Risk", section.statusMix.slice(0, 7), fc),
-        hbar("Top Customers by Payment", section.topCustomers.slice(0, 5), fc),
+        hbar("Payment Aging by Risk", section.statusMix.slice(0, 7), "rp"),
+        hbar("Top Customers by Payment", section.topCustomers.slice(0, 5), "rp"),
         donut("Payment Risk Composition", section.statusMix),
       ];
 
@@ -699,7 +714,8 @@ export function buildReportPptSpec(
     {
       type: "title",
       title: `LAPORAN MONITORING ${roleLabel.toUpperCase()}\n${filterLabel}`,
-      subtitle: `UNIT of COMMERCIAL FINANCE 2  |  Periode terakhir ${section.latestPeriod}  |  ${formatNumber(section.rowCount)} invoice`,
+      subtitle: `UNIT of COMMERCIAL FINANCE 2
+Periode terakhir ${section.latestPeriod}  |  ${formatNumber(section.rowCount)} invoice`,
     },
     {
       type: "summary",
@@ -724,7 +740,7 @@ export function buildReportPptSpec(
     slides.push({
       type: "content",
       title: `${roleLabel} ${filterLabel} — Outstanding Trend`,
-      charts: [line("Outstanding Trend", trend.map((point) => point.label), trendSeries, "idr", fc)],
+      charts: [line("Outstanding Trend", trend.map((point) => point.label), trendSeries, "idr")],
       bullets: trendBullets,
     });
     if (bucket4?.value) followUps.push(`Prioritaskan penagihan piutang Bucket 4 (>365 hari) senilai ${fc(bucket4.value)} (${formatPercent(bucket4.share)}).`);
@@ -754,7 +770,7 @@ export function buildReportPptSpec(
           { label: "YoY", value: formatDeltaPercent(movement.yoy), sub: movement.label },
           { label: "YTD", value: formatDeltaPercent(movement.ytd), sub: `s.d. ${movement.label}` },
         ],
-        charts: [line("Payment Trend", trend.map((point) => point.label), trendSeries, "idr", fc)],
+        charts: [line("Payment Trend", trend.map((point) => point.label), trendSeries, "idr")],
         bullets: compact<string>([
           movement.label !== "-"
             ? `Pergerakan ${movement.label}: MoM ${formatDeltaPercent(movement.mom)}, YoY ${formatDeltaPercent(movement.yoy)}, YTD ${formatDeltaPercent(movement.ytd)}.`
@@ -766,7 +782,7 @@ export function buildReportPptSpec(
         type: "content",
         title: `${roleLabel} ${filterLabel} — Target vs Realisasi`,
         charts: [
-          hbar("AR Persentase From Target", targets.map((point) => ({ label: point.month, value: point.variance })), formatDeltaPercent, "teal"),
+          hbar("AR Persentase From Target", targets.map((point) => ({ label: point.month, value: point.variance })), "pctDelta", "teal"),
           {
             kind: "groupedHbar",
             title: "Target VS Realisasi",

@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // `ANALYZE=1 npm run build` emits client source maps for bundle inspection.
   productionBrowserSourceMaps: process.env.ANALYZE === "1",
   compress: true,
+  // The PPT renderer reads its slide backgrounds with fs at runtime; make sure
+  // they ship with the serverless function on Vercel.
+  outputFileTracingIncludes: {
+    "/api/dashboard/ppt": ["./lib/ppt-templates/bg/**"],
+  },
   experimental: {
     // Import only the icons/primitives actually used instead of whole barrels.
     optimizePackageImports: ["@hugeicons/core-free-icons", "@hugeicons/react", "radix-ui"],
