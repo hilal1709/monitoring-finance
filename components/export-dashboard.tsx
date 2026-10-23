@@ -16,6 +16,8 @@ import { ExportToolbar } from "@/components/export/toolbar";
 import { ExportUploadProgress, ExportUploadSuccess } from "@/components/export/upload-feedback";
 import { ExportUploadState } from "@/components/export/upload-state";
 import { formatExportUploadSuccess } from "@/lib/export-dashboard-format";
+import { lazySource, type CanvasSources } from "@/components/dashboard-canvas/canvas";
+import { builtinSources, exportRows, exportTargetRows } from "@/lib/chart-builder/sources";
 import type { ExportViewPayload, ExportDashboardView, ExportDashboardWire, ExportStoredMonth } from "@/lib/export-dashboard-types";
 import { unpackRows } from "@/lib/packed-rows";
 import { readResponsePayload, responseError, uploadWorkbook } from "@/lib/upload-workbook";
@@ -141,8 +143,6 @@ export default function ExportDashboard({ view, initialData }: { view: ExportDas
     }
   }
 
-  const latestPeriodKey = data?.months[0]?.periodKey ?? "";
-  const latestPeriodLabel = data?.months[0]?.label ?? "Bulan Ini";
   const filteredRecords = useMemo(() => {
     if (!data) return [];
     const effectivePeriod = selectedPeriod;
@@ -152,10 +152,21 @@ export default function ExportDashboard({ view, initialData }: { view: ExportDas
       const companyMatch = selectedCompany === "all" || record.companyCode === selectedCompany;
       return periodMatch && companyMatch;
     });
-  }, [data, latestPeriodKey, selectedCompany, selectedPeriod, view]);
-  const effectivePeriodLabel = selectedPeriod === "all"
-    ? "Semua Periode"
-    : data?.months.find((month) => month.periodKey === selectedPeriod)?.label ?? selectedPeriod;
+  }, [data, selectedCompany, selectedPeriod]);
+  // The canvas gets every month of the chosen company: the toolbar period is
+  // passed as a scope so MoM/YoY/YTD widgets can still look back in time.
+  const companyRecords = useMemo(() => (data ? data.records.filter((record) => selectedCompany === "all" || record.companyCode === selectedCompany) : []), [data, selectedCompany]);
+  const kpi = data?.kpi ?? null;
+  const canvasSources = useMemo<CanvasSources>(
+    () => ({
+      export: lazySource(builtinSources.export, companyRecords, exportRows),
+      // KPI-sheet months (targets) — joined with the records on the period.
+      "export-target": lazySource(builtinSources["export-target"], kpi ? [kpi] : [], ([sheet]) => exportTargetRows(sheet ?? null)),
+    }),
+    [companyRecords, kpi],
+  );
+  const periodScope = useMemo(() => (selectedPeriod === "all" ? null : [selectedPeriod]), [selectedPeriod]);
+  const canvasProps = { sources: canvasSources, periodScope };
 
   // Stagger-reveal export cards on view switch and first data load only —
   // not on filter changes, so adjusting a filter doesn't re-animate (flicker).
@@ -229,12 +240,12 @@ export default function ExportDashboard({ view, initialData }: { view: ExportDas
             </div>
           ) : (
             <div ref={viewsRef} className="space-y-2">
-              {view === "export-overview" ? <OverviewView records={filteredRecords} /> : null}
-              {view === "export-rkap" ? <RkapView records={filteredRecords} kpi={data.kpi ?? null} /> : null}
-              {view === "export-trend" ? <TrendView records={filteredRecords} /> : null}
-              {view === "export-destinations" ? <DestinationsView records={filteredRecords} /> : null}
-              {view === "export-forecast" ? <ForecastView records={filteredRecords} kpi={data.kpi ?? null} /> : null}
-              {view === "export-demurrage" ? <DemurrageView records={filteredRecords} /> : null}
+              {view === "export-overview" ? <OverviewView {...canvasProps} /> : null}
+              {view === "export-rkap" ? <RkapView {...canvasProps} kpi={data.kpi ?? null} /> : null}
+              {view === "export-trend" ? <TrendView {...canvasProps} /> : null}
+              {view === "export-destinations" ? <DestinationsView {...canvasProps} /> : null}
+              {view === "export-forecast" ? <ForecastView {...canvasProps} kpi={data.kpi ?? null} /> : null}
+              {view === "export-demurrage" ? <DemurrageView {...canvasProps} /> : null}
             </div>
           )}
         </div>

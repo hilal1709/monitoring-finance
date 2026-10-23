@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import DashboardPage from "@/components/dashboard-page";
-import { getCachedExportDashboard, safely } from "@/lib/data-cache";
+import { getCachedExportDashboard, getCachedLayout, safely } from "@/lib/data-cache";
 
 // Rendered on the server from the tagged data cache (see lib/data-cache.ts) and
 // regenerated when an upload/delete invalidates the tag.
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ExportOverviewPage() {
-  const initialExport = await safely(() => getCachedExportDashboard());
+  const [initialExport, initialLayout] = await Promise.all([safely(() => getCachedExportDashboard()), safely(() => getCachedLayout("export-overview"))]);
 
-  return <DashboardPage view="export-overview" initialExport={initialExport} />;
+  return <DashboardPage view="export-overview" initialExport={initialExport} initialLayout={initialLayout} />;
 }

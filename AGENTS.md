@@ -219,8 +219,25 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 - **shadcn/ui is the foundation.** Build from the primitives in `components/ui/` (Button, Card, Badge, Tooltip, Progress, Dialog, …; style `radix-nova` per `components.json`). If a 21st component needs a shadcn primitive we don't have, add it with `npx shadcn@latest add <name>` instead of hand-rolling one.
 - **Icons:** replace lucide with `Icon` from `components/ui/icon.tsx` + `@hugeicons/core-free-icons`.
 - **Animation uses GSAP, always lazy-loaded through `lib/gsap.ts`.** Call `withMotion(gsap => …)` (skips reduced-motion users) or `withGsap` from handlers/effects, or `loadGsap()` when you need the promise. Never `import "gsap"` or `@gsap/react` directly — a static import puts ~70 KB back into every page's initial JS and drops the mobile Lighthouse score. Translate any `framer-motion`/`motion` code to GSAP — do not install framer-motion. The older WAAPI helpers in `lib/motion.ts` stay for components not yet upgraded.
+- **anime.js, AOS and Swiper are lazy too.** anime.js only via `lib/anime.ts` (`withAnime`/`loadAnime`); AOS only via `lib/aos.ts` (initialised on idle, never imported in a page module); Swiper only through `components/ui/carousel.tsx` (`next/dynamic`, CSS imported inside that module).
+- **Aceternity UI (ui.aceternity.com) is a design reference only.** Its components are built on framer-motion: rebuild the look with our primitives and translate the motion to GSAP/anime.js.
+- **Illustrations before icons.** Empty states, onboarding and guide screens use the SVG illustrations in `components/illustrations/` or a Lottie from `public/lottie/` (`components/ui/lottie.tsx`); Hugeicons are for actions and controls.
 - Keep UI copy in Bahasa Indonesia and keep existing component props/APIs so callers don't change.
 - New components go in `components/ui/`; add `"use client"` only when needed.
+
+## Customisable dashboards (canvas)
+
+Every dashboard page renders its charts, cards and filters through `DashboardCanvas` (`components/dashboard-canvas/canvas.tsx`):
+
+- A page passes **built-ins** (`BuiltinWidget` in `layout-utils.ts`: id, size, `render(records)`, optional equivalent `spec`) plus **sources** built with `lazySource(def, records, toRows)` so builder rows are only computed when something needs them. Built-ins live next to their views (`components/export/views/*`, `components/dashboard/report-frame.tsx`, `combined-overview.tsx`, `kpi-dashboard.tsx`). Add new panels there, not as fixed JSX.
+- Saved layouts are `PageLayout` JSON in Postgres (`lib/dashboard-layout-store.ts`, `app/api/layouts/[view]`), read server-side with `getCachedLayout(view)`; without one the page shows the built-in arrangement.
+- Specs, aggregation, filters and **MoM/YoY/YTD** live in `lib/chart-builder/` — `time-intel.ts` is the single source of truth for period comparisons (tests in `tests/time-intel.spec.ts`). Page period filters reach the canvas as `periodScope`: plain widgets are narrowed to it, period-comparing widgets keep history and use it as the reference month.
+- View mode must stay light: everything for editing (`canvas-editor.tsx`, dock, editors, guide, tour, react-grid-layout) and custom widgets/slicers are `next/dynamic` chunks. Keep it that way.
+
+## Project skills
+
+- **impeccable** (`.claude/skills/impeccable`) — UI design/audit/polish. Run `.claude/skills/impeccable/scripts/impeccable.cmd context` first; `PRODUCT.md`/`DESIGN.md` come from `/impeccable init`.
+- **graphify** (`.claude/skills/graphify`) — code knowledge graph in `graphify-out/` (git-ignored). Rebuild with `graphify update .` (no LLM); ask with `graphify query "<question>"`. `.graphifyignore` keeps vendored Python and skills out.
 
 ## Make It Yours
 

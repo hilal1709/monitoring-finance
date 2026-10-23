@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* The app has one (light) theme: `dark:` classes from shadcn/21st components
+   only apply under an explicit .dark class, never from the OS colour scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Color palette (anita.pdf), used by every token below:
    #174D55 deep teal    — primary text, headings, sidebar, positive values
    #4ECDC4 turquoise    — primary accent, primary buttons, focus ring
@@ -295,19 +299,6 @@ select option {
   }
 }
 
-/* Partition bar segments grow left to right on mount, one after another. */
-.partition-segment {
-  transform-origin: left center;
-  animation: partition-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  animation-delay: calc(0.15s + var(--segment-index, 0) * 0.08s);
-}
-
-@keyframes partition-grow {
-  from {
-    transform: scaleX(0);
-  }
-}
-
 /* Horizontally scrolling year row in the month filter: thin bar, faded edges. */
 .year-scroller {
   scrollbar-width: thin;
@@ -527,9 +518,32 @@ select option {
   .confetti-piece,
   .kpi-shine::after,
   .kpi-gauge-arc,
-  .partition-segment,
   .illustration,
   .illustration * {
     animation: none !important;
   }
+}
+
+/* Chart loader (components/ui/chart-loader.tsx): anime.js drives the bars;
+   reduced-motion users get a gentle opacity pulse instead. */
+@keyframes chart-loader-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-loader [data-chart-bar] {
+    animation: chart-loader-pulse 1.6s ease-in-out infinite;
+  }
+
+  .chart-loader [data-chart-bar]:nth-of-type(2n) {
+    animation-delay: 0.4s;
+  }
+}
+
+/* Dashboard edit mode: toasts sit above the floating dock (components/dashboard-canvas/dock.tsx). */
+body[data-canvas-editing] [data-sonner-toaster][data-y-position="bottom"] {
+  --offset-bottom: 88px !important;
+  --mobile-offset-bottom: 88px !important;
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { getRoleDashboard, toDashboardPayload } from "@/lib/dashboard-store";
+import { getLayout } from "@/lib/dashboard-layout-store";
 import { getExportDashboard } from "@/lib/export-dashboard-store";
 import { EXPORT_VIEW_FIELDS, type ExportDashboardWire, type ExportViewRecord } from "@/lib/export-dashboard-types";
 import { getKpiDashboard } from "@/lib/kpi-dashboard-store";
@@ -21,6 +22,7 @@ export const cacheTags = {
   dashboard: (role: WorkbookRole) => `dashboard:${role}`,
   export: "export",
   kpi: "kpi",
+  layout: (view: string) => `layout:${view}`,
 } as const;
 
 const cachedRoleDashboard = {
@@ -53,6 +55,14 @@ export const getCachedKpiDashboard = unstable_cache(() => getKpiDashboard(), ["k
   tags: [cacheTags.kpi],
   revalidate: REVALIDATE_SECONDS,
 });
+
+/** The saved custom layout of a page, or null for the built-in one. */
+export function getCachedLayout(view: string) {
+  return unstable_cache(() => getLayout(view), ["dashboard-layout", view, "v2"], {
+    tags: [cacheTags.layout(view)],
+    revalidate: REVALIDATE_SECONDS,
+  })();
+}
 
 /** Expire immediately (not stale-while-revalidate): the uploader must see their own write. */
 export function invalidate(tag: string) {

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Icon, type IconSvgElement } from "@/components/ui/icon";
 import { withMotion } from "@/lib/gsap";
 import { useSpotlightLift } from "@/lib/use-spotlight-lift";
+import { cardToneStyles, type CardTone } from "@/components/dashboard-canvas/card-tones";
 import { cn } from "@/lib/utils";
 
 const GAUGE_RADIUS = 21;
@@ -17,6 +18,7 @@ export function ExportKpi({
   icon,
   gauge,
   highlight = false,
+  tone,
 }: {
   title: string;
   value: string;
@@ -26,11 +28,13 @@ export function ExportKpi({
   gauge?: number;
   /** Animated shine border; use on at most one card per page. */
   highlight?: boolean;
+  /** Explicit colour; without it the card cycles colours by position. */
+  tone?: CardTone;
 }) {
   const motion = useSpotlightLift<HTMLDivElement>();
 
   return (
-    <Card {...motion} className={cn("kpi-card relative min-h-20 flex-row items-center gap-3 rounded-lg p-3 ring-0", highlight && "kpi-shine")}>
+    <Card {...motion} style={tone ? cardToneStyles[tone] : undefined} className={cn("kpi-card relative min-h-20 flex-row items-center gap-3 rounded-lg p-3 ring-0", highlight && "kpi-shine")}>
       <span aria-hidden className="kpi-spotlight" />
       {gauge === undefined ? (
         <div data-wiggle className="kpi-card-icon relative grid size-10 shrink-0 place-items-center rounded-lg">

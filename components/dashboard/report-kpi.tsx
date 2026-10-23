@@ -4,6 +4,7 @@ import { AnimatedDisplay } from "@/components/ui/animated-number";
 import { Card } from "@/components/ui/card";
 import { Icon, type IconSvgElement } from "@/components/ui/icon";
 import { useSpotlightLift } from "@/lib/use-spotlight-lift";
+import { cardToneStyles, type CardTone } from "@/components/dashboard-canvas/card-tones";
 import { cn } from "@/lib/utils";
 
 export function ReportKpi({
@@ -13,6 +14,7 @@ export function ReportKpi({
   detail,
   compact = false,
   highlight = false,
+  tone,
 }: {
   icon: IconSvgElement;
   title: string;
@@ -22,12 +24,15 @@ export function ReportKpi({
   compact?: boolean;
   /** Animated shine border; use on at most one card per page. */
   highlight?: boolean;
+  /** Explicit colour; without it the card cycles colours by position. */
+  tone?: CardTone;
 }) {
   const motion = useSpotlightLift<HTMLDivElement>();
 
   return (
     <Card
       {...motion}
+      style={tone ? cardToneStyles[tone] : undefined}
       className={cn(
         "kpi-card relative grid min-w-0 gap-0 rounded-lg py-0 ring-0 shadow-[0_18px_35px_rgba(26,83,92,0.07)]",
         compact ? "min-h-16 grid-cols-[44px_minmax(0,1fr)]" : "min-h-24 grid-cols-[56px_minmax(0,1fr)]",

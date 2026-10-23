@@ -488,3 +488,39 @@ export function rankedItemTooltip(item: RankedItem) {
 export function chartBarWidth(value: number, max: number) {
   return value === 0 ? 0 : Math.max(2, (Math.abs(value) / max) * 100);
 }
+
+const sectionCache = new WeakMap<DashboardRecord[], Map<WorkbookRole, DashboardSection>>();
+
+/** sectionFromRecords, memoised per records array (canvas widgets share filtered arrays). */
+export function sectionOf(records: DashboardRecord[], role: WorkbookRole): DashboardSection {
+  let byRole = sectionCache.get(records);
+  if (!byRole) {
+    byRole = new Map();
+    sectionCache.set(records, byRole);
+  }
+  let section = byRole.get(role);
+  if (!section) {
+    // Every month, as the unfiltered report always showed (loadedReportsFromPacked).
+    section = { ...sectionFromRecords(records, statusOrderForRole(role)), monthly: monthlyFromRecords(records) };
+    byRole.set(role, section);
+  }
+  return section;
+}
+
+/** Period keys of `records` that pass the year/month filters (null = no period filter set). */
+export function periodScopeFromFilters(records: DashboardRecord[], filters: ReportFilters): string[] | null {
+  const periodFilters: ReportFilters = { year: filters.year, month: filters.month };
+  if (activeFilterCount(periodFilters) === 0) return null;
+  const keys = new Set<string>();
+  for (const record of records) if (record.periodKey && matchesFilters(record, periodFilters)) keys.add(record.periodKey);
+  // A filter that matches nothing must still narrow to nothing.
+  return keys.size ? [...keys].sort() : ["__none__"];
+}
+
+/** Filters without year/month: those go to the canvas as a period scope instead. */
+export function withoutPeriodFilters(filters: ReportFilters): ReportFilters {
+  const rest = { ...filters };
+  delete rest.year;
+  delete rest.month;
+  return rest;
+}

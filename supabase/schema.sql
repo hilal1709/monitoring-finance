@@ -93,3 +93,32 @@ values
   ('Vendor_List_Update.xlsx', 'Master Data', '2023-10-21 16:45:00+00', 'success', 84, 0, 'Reference list refreshed without conflicts.'),
   ('Q4_Forecast_Draft.xlsx', 'Forecast', now(), 'processing', null, 0, 'Validation is still running for this draft.')
 on conflict do nothing;
+
+-- Customised dashboard layouts (charts, cards, filters) per page view, plus a
+-- short version history. Created lazily by lib/dashboard-layout-store.ts too.
+create table if not exists public.dashboard_layouts (
+  view       text primary key,
+  layout     jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.dashboard_layout_versions (
+  id         bigserial primary key,
+  view       text not null,
+  layout     jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists dashboard_layout_versions_view_idx
+  on public.dashboard_layout_versions (view, created_at desc);
+
+-- Excel/CSV files uploaded from the chart editor ("Upload Excel bebas").
+-- Rows are column-packed (lib/packed-rows.ts).
+create table if not exists public.custom_datasets (
+  id         text primary key,
+  name       text not null,
+  columns    jsonb not null,
+  row_count  integer not null,
+  rows       jsonb not null,
+  created_at timestamptz not null default now()
+);

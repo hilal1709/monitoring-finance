@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import DashboardPage from "@/components/dashboard-page";
-import { getCachedDashboard, safely } from "@/lib/data-cache";
+import { getCachedDashboard, getCachedLayout, safely } from "@/lib/data-cache";
 
 // Rendered on the server from the tagged data cache (see lib/data-cache.ts) and
 // regenerated when an upload/delete invalidates the tag.
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function InvoicePage() {
-  const initialData = await safely(() => getCachedDashboard(["invoice"]));
+  const [initialData, initialLayout] = await Promise.all([safely(() => getCachedDashboard(["invoice"])), safely(() => getCachedLayout("invoice"))]);
 
-  return <DashboardPage view="invoice" initialData={initialData} />;
+  return <DashboardPage view="invoice" initialData={initialData} initialLayout={initialLayout} />;
 }

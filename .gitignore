@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /lighthouse-reports
+
+# graphify knowledge graph (regenerate with `graphify update .`)
+/graphify-out/

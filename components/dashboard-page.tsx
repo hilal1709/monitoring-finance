@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download04Icon, Loading03Icon, Menu01Icon, PanelLeftCloseIcon, PanelLeftOpenIcon, CloudUploadIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Logo } from "@/components/brand/logo";
@@ -18,6 +18,8 @@ import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useRevealAnimation } from "@/lib/use-reveal-animation";
 import { SidebarNavigation } from "@/components/dashboard/sidebar-navigation";
+import { CustomizeButton, CustomizeProvider } from "@/components/dashboard-canvas/customize-context";
+import type { PageLayout } from "@/lib/chart-builder/types";
 import type { KpiPayload } from "@/components/kpi-dashboard";
 import { loadedReportsFromPacked } from "@/lib/dashboard-data";
 import { exportViewConfig, isExportDashboardView, uploadCards } from "@/lib/dashboard-constants";
@@ -47,8 +49,11 @@ export default function DashboardPage({
   initialData,
   initialExport,
   initialKpi,
+  initialLayout,
 }: {
   view?: DashboardView;
+  /** Saved custom layout of this view (null/undefined = built-in). */
+  initialLayout?: PageLayout | null;
   /** Server-loaded invoice/payment data (undefined when the server load failed → client fetch). */
   initialData?: DashboardPayload;
   initialExport?: ExportDashboardWire;
@@ -129,7 +134,8 @@ export default function DashboardPage({
     });
   }
 
-  function toggleFilter(role: WorkbookRole, key: FilterKey, value: string) {
+  // Stable (setter-only) so the report canvases don't rebuild their widgets on every render.
+  const toggleFilter = useCallback((role: WorkbookRole, key: FilterKey, value: string) => {
     setFilters((current) => {
       const roleFilters = current[role];
       const selected = roleFilters[key] ?? [];
@@ -147,9 +153,9 @@ export default function DashboardPage({
         [role]: nextRoleFilters,
       };
     });
-  }
+  }, []);
 
-  function clearFilters(role: WorkbookRole, key?: FilterKey) {
+  const clearFilters = useCallback((role: WorkbookRole, key?: FilterKey) => {
     setFilters((current) => {
       if (!key) {
         return {
@@ -166,7 +172,15 @@ export default function DashboardPage({
         [role]: nextRoleFilters,
       };
     });
-  }
+  }, []);
+
+  const filterHandlers = useMemo(
+    () => ({
+      invoice: { toggle: (key: FilterKey, value: string) => toggleFilter("invoice", key, value), clear: (key?: FilterKey) => clearFilters("invoice", key) },
+      payment: { toggle: (key: FilterKey, value: string) => toggleFilter("payment", key, value), clear: (key?: FilterKey) => clearFilters("payment", key) },
+    }),
+    [toggleFilter, clearFilters],
+  );
 
   function openWorkbookPicker(role: WorkbookRole) {
     if (role === "invoice") {
@@ -396,6 +410,7 @@ export default function DashboardPage({
   }
 
   return (
+    <CustomizeProvider view={view} initialLayout={initialLayout}>
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
       <TopProgress active={loadingRole !== null || deletingMonthKey !== null || isLoadingStoredReports} />
       <input
@@ -496,6 +511,7 @@ export default function DashboardPage({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <CustomizeButton />
           {exportSection ? (
             <ExportPptMenu onSelect={downloadExportPpt} />
           ) : activeRole ? (
@@ -630,8 +646,8 @@ export default function DashboardPage({
               file={reports.invoice.file}
               generatedAt={reports.invoice.generatedAt}
               filters={filters.invoice}
-              onToggleFilter={(key, value) => toggleFilter("invoice", key, value)}
-              onClearFilter={(key) => clearFilters("invoice", key)}
+              onToggleFilter={filterHandlers.invoice.toggle}
+              onClearFilter={filterHandlers.invoice.clear}
               periodMode={periodMode}
               onPeriodModeChange={setPeriodMode}
             />
@@ -645,8 +661,8 @@ export default function DashboardPage({
               file={reports.payment.file}
               generatedAt={reports.payment.generatedAt}
               filters={filters.payment}
-              onToggleFilter={(key, value) => toggleFilter("payment", key, value)}
-              onClearFilter={(key) => clearFilters("payment", key)}
+              onToggleFilter={filterHandlers.payment.toggle}
+              onClearFilter={filterHandlers.payment.clear}
               periodMode={periodMode}
               onPeriodModeChange={setPeriodMode}
             />
@@ -654,5 +670,6 @@ export default function DashboardPage({
         </div>
       </main>
     </div>
+    </CustomizeProvider>
   );
 }

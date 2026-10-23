@@ -118,3 +118,181 @@ export function ErrorIllustration({ className }: IllustrationProps) {
     </svg>
   );
 }
+
+/** Spreadsheet columns with one picked by a cursor — editor step "Pilih data". */
+export function PickDataIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 200 150" className={cn("illustration h-28 w-auto", className)} aria-hidden>
+      <ellipse cx="100" cy="138" rx="58" ry="6" fill={TEAL} opacity="0.1" />
+      <g data-float>
+        <rect x="34" y="22" width="120" height="100" rx="12" fill="#fff" stroke={TEAL} strokeOpacity="0.25" strokeWidth="2" />
+        <rect x="34" y="22" width="120" height="18" rx="12" fill={MINT} />
+        <rect x="34" y="32" width="120" height="8" fill={MINT} />
+        <rect x="80" y="22" width="34" height="100" fill={TURQ} opacity="0.22" />
+        <rect x="80" y="22" width="34" height="100" fill="none" stroke={TURQ} strokeWidth="2.5" />
+        {[0, 1, 2].map((column) => (
+          <rect key={column} x={44 + column * 40} y="28" width="22" height="6" rx="3" fill={TEAL} opacity={column === 1 ? 0.7 : 0.25} />
+        ))}
+        {[52, 68, 84, 100].map((y) => (
+          <g key={y}>
+            <rect x="44" y={y} width="24" height="6" rx="3" fill={TEAL} opacity="0.14" />
+            <rect x="86" y={y} width="22" height="6" rx="3" fill={TEAL} opacity="0.45" />
+            <rect x="124" y={y} width="20" height="6" rx="3" fill={TEAL} opacity="0.14" />
+          </g>
+        ))}
+      </g>
+      <g data-bounce>
+        <path d="M118 84l26 10-11 4 8 13-6 3-8-13-8 8z" fill={SUN} stroke={TEAL} strokeWidth="2.5" strokeLinejoin="round" />
+      </g>
+      <circle data-twinkle cx="26" cy="36" r="3.5" fill={CORAL} />
+      <circle data-twinkle cx="170" cy="30" r="4" fill={SUN} />
+    </svg>
+  );
+}
+
+/** Bar, line and donut cards fanned out — editor step "Pilih jenis grafik". */
+export function ChartTypeIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 220 150" className={cn("illustration h-28 w-auto", className)} aria-hidden>
+      <ellipse cx="110" cy="138" rx="70" ry="6" fill={TEAL} opacity="0.1" />
+      <g data-sway>
+        <g transform="rotate(-10 51 76)">
+          <rect x="22" y="40" width="58" height="72" rx="10" fill="#fff" stroke={TEAL} strokeOpacity="0.2" strokeWidth="2" />
+          <path d="M36 66l10-8 10 6 14-12" fill="none" stroke={CORAL} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="70" cy="52" r="3" fill={CORAL} />
+          <rect x="34" y="92" width="34" height="5" rx="2.5" fill={TEAL} opacity="0.15" />
+        </g>
+      </g>
+      <g data-sway>
+        <g transform="rotate(10 173 76)">
+          <rect x="144" y="40" width="58" height="72" rx="10" fill="#fff" stroke={TEAL} strokeOpacity="0.2" strokeWidth="2" />
+          <circle cx="173" cy="68" r="15" fill="none" stroke={TURQ} strokeWidth="8" />
+          <path d="M173 53a15 15 0 0 1 14 20" fill="none" stroke={SUN} strokeWidth="8" />
+          <rect x="157" y="92" width="32" height="5" rx="2.5" fill={TEAL} opacity="0.15" />
+        </g>
+      </g>
+      <g data-float>
+        <rect x="80" y="24" width="62" height="86" rx="12" fill="#fff" stroke={TURQ} strokeWidth="3" />
+        <rect x="92" y="70" width="9" height="26" rx="2.5" fill={TURQ} />
+        <rect x="106" y="54" width="9" height="42" rx="2.5" fill={SUN} />
+        <rect x="120" y="62" width="9" height="34" rx="2.5" fill={CORAL} />
+        <rect x="92" y="36" width="30" height="6" rx="3" fill={TEAL} opacity="0.3" />
+        <circle cx="138" cy="28" r="10" fill={TURQ} />
+        <path d="M133 28l4 4 6-7" fill="none" stroke={TEAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <circle data-twinkle cx="104" cy="14" r="3" fill={SUN} />
+      <circle data-twinkle cx="20" cy="30" r="3.5" fill={TURQ} />
+    </svg>
+  );
+}
+
+/** Dotted grid with a dashed placeholder tile and a plus — for an empty custom canvas. */
+export function EmptyCanvasIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 200 150" className={cn("illustration h-32 w-auto", className)} aria-hidden>
+      <ellipse cx="100" cy="140" rx="64" ry="6" fill={TEAL} opacity="0.1" />
+      <g data-float>
+        <rect x="26" y="18" width="148" height="110" rx="14" fill={MINT} stroke={TEAL} strokeOpacity="0.2" strokeWidth="2" />
+        {[0, 1, 2, 3, 4, 5].map((column) =>
+          [0, 1, 2, 3].map((row) => <circle key={`${column}-${row}`} cx={44 + column * 22} cy={36 + row * 24} r="1.8" fill={TEAL} opacity="0.2" />),
+        )}
+        <rect x="40" y="30" width="54" height="40" rx="8" fill="#fff" stroke={TEAL} strokeOpacity="0.18" strokeWidth="2" />
+        <rect x="48" y="40" width="26" height="5" rx="2.5" fill={TEAL} opacity="0.2" />
+        <rect x="48" y="52" width="36" height="8" rx="3" fill={SUN} />
+        <rect x="104" y="30" width="56" height="84" rx="10" fill="none" stroke={TURQ} strokeWidth="2.5" strokeDasharray="7 6" />
+      </g>
+      <g data-bounce>
+        <circle cx="132" cy="72" r="16" fill={TURQ} />
+        <path d="M132 64v16M124 72h16" stroke={TEAL} strokeWidth="3.5" strokeLinecap="round" />
+      </g>
+      <circle data-twinkle cx="22" cy="120" r="3" fill={CORAL} />
+      <circle data-twinkle cx="182" cy="24" r="4" fill={SUN} />
+    </svg>
+  );
+}
+
+/** Excel file flying into a database cylinder — for uploading a custom dataset. */
+export function UploadDatasetIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 200 150" className={cn("illustration h-32 w-auto", className)} aria-hidden>
+      <ellipse cx="134" cy="140" rx="48" ry="6" fill={TEAL} opacity="0.1" />
+      <g data-float>
+        <path d="M96 86v34c0 7 18 12 38 12s38-5 38-12V86" fill="#fff" stroke={TEAL} strokeOpacity="0.3" strokeWidth="2" />
+        <path d="M96 103c0 7 18 12 38 12s38-5 38-12" fill="none" stroke={TEAL} strokeOpacity="0.2" strokeWidth="2" />
+        <ellipse cx="134" cy="86" rx="38" ry="12" fill={TURQ} />
+        <ellipse cx="134" cy="86" rx="24" ry="6" fill={TEAL} opacity="0.2" />
+        <circle cx="160" cy="112" r="3" fill={TURQ} />
+        <circle cx="160" cy="126" r="3" fill={SUN} />
+      </g>
+      <g data-bounce>
+        <g transform="rotate(-8 57 55)">
+          <path d="M30 22h40l14 14v52H30z" fill="#fff" stroke={TEAL} strokeOpacity="0.35" strokeWidth="2" />
+          <path d="M70 22v14h14" fill={MINT} stroke={TEAL} strokeOpacity="0.35" strokeWidth="2" />
+          <rect x="38" y="46" width="38" height="30" rx="4" fill={TURQ} opacity="0.25" />
+          <path d="M38 56h38M38 66h38M51 46v30M64 46v30" stroke={TEAL} strokeOpacity="0.3" strokeWidth="1.5" />
+          <rect x="36" y="28" width="22" height="11" rx="3" fill={TEAL} />
+          <text x="47" y="36.5" textAnchor="middle" fontSize="7" fontWeight="800" fill={MINT}>XLS</text>
+        </g>
+      </g>
+      <path d="M90 56q20-6 32 14" fill="none" stroke={CORAL} strokeWidth="3" strokeLinecap="round" strokeDasharray="4 6" />
+      <path d="M114 67l8 4 1-9" fill="none" stroke={CORAL} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle data-twinkle cx="176" cy="40" r="4" fill={SUN} />
+      <circle data-twinkle cx="24" cy="110" r="3" fill={CORAL} />
+    </svg>
+  );
+}
+
+/** Pointer dragging a chart tile across the grid, with a resize corner — edit-mode tutorial. */
+export function DragWidgetIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 200 150" className={cn("illustration h-32 w-auto", className)} aria-hidden>
+      <ellipse cx="100" cy="140" rx="62" ry="6" fill={TEAL} opacity="0.1" />
+      <rect x="22" y="18" width="156" height="112" rx="14" fill={MINT} stroke={TEAL} strokeOpacity="0.15" strokeWidth="2" />
+      <rect x="34" y="30" width="58" height="40" rx="8" fill="#fff" stroke={TEAL} strokeOpacity="0.15" strokeWidth="2" />
+      <rect x="42" y="40" width="22" height="5" rx="2.5" fill={TEAL} opacity="0.2" />
+      <rect x="42" y="52" width="40" height="8" rx="3" fill={CORAL} opacity="0.6" />
+      <rect x="34" y="78" width="58" height="40" rx="8" fill="none" stroke={TURQ} strokeWidth="2" strokeDasharray="6 5" />
+      <path d="M100 98h-6M112 98h-6" stroke={TURQ} strokeWidth="3" strokeLinecap="round" />
+      <g data-float>
+        <rect x="104" y="44" width="64" height="62" rx="10" fill="#fff" stroke={TURQ} strokeWidth="3" />
+        <rect x="114" y="80" width="9" height="16" rx="2" fill={TURQ} />
+        <rect x="127" y="68" width="9" height="28" rx="2" fill={SUN} />
+        <rect x="140" y="74" width="9" height="22" rx="2" fill={CORAL} />
+        <rect x="114" y="54" width="28" height="5" rx="2.5" fill={TEAL} opacity="0.3" />
+        <path d="M160 100l4-4M154 100l10-10" stroke={TEAL} strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" />
+      </g>
+      <g data-bounce>
+        <path d="M130 62l30 11-13 5 9 15-7 4-9-15-10 9z" fill={SUN} stroke={TEAL} strokeWidth="2.5" strokeLinejoin="round" />
+      </g>
+      <circle data-twinkle cx="186" cy="30" r="3.5" fill={CORAL} />
+      <circle data-twinkle cx="14" cy="120" r="3" fill={SUN} />
+    </svg>
+  );
+}
+
+/** Dashboard layout card with a save badge — for "Simpan tata letak". */
+export function SaveLayoutIllustration({ className }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 200 150" className={cn("illustration h-28 w-auto", className)} aria-hidden>
+      <ellipse cx="100" cy="138" rx="56" ry="6" fill={TEAL} opacity="0.1" />
+      <g data-float>
+        <rect x="36" y="24" width="112" height="94" rx="12" fill="#fff" stroke={TEAL} strokeOpacity="0.25" strokeWidth="2" />
+        <rect x="46" y="34" width="44" height="30" rx="6" fill={TURQ} opacity="0.3" />
+        <rect x="96" y="34" width="42" height="30" rx="6" fill={SUN} opacity="0.7" />
+        <rect x="46" y="70" width="92" height="38" rx="6" fill={MINT} stroke={TEAL} strokeOpacity="0.12" strokeWidth="2" />
+        <path d="M54 98l14-10 12 6 18-14 14 8 16-10" fill="none" stroke={CORAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <g data-bounce>
+        <rect x="128" y="82" width="40" height="40" rx="9" fill={TEAL} />
+        <rect x="136" y="82" width="22" height="13" rx="2" fill={MINT} />
+        <rect x="150" y="85" width="4" height="7" rx="1" fill={TEAL} />
+        <rect x="136" y="104" width="24" height="12" rx="2.5" fill={TURQ} />
+      </g>
+      <g data-twinkle>
+        <circle cx="170" cy="78" r="9" fill={SUN} />
+        <path d="M166 78l3 3 5-6" fill="none" stroke={TEAL} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <circle data-twinkle cx="26" cy="40" r="3.5" fill={CORAL} />
+    </svg>
+  );
+}

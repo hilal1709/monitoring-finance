@@ -19,7 +19,7 @@ const LazyGroupedHorizontalBarChart = dynamic(() => loadCharts().then((module) =
 const LazyLineChart = dynamic(() => loadCharts().then((module) => module.LineChart), { ssr: false });
 const LazyDoughnutChart = dynamic(() => loadCharts().then((module) => module.DoughnutChart), { ssr: false });
 
-function ChartBox<P extends object>({ chart: Chart, props, style, label }: { chart: ComponentType<P>; props: P; style: CSSProperties; label: string }) {
+export function ChartBox<P extends object>({ chart: Chart, props, style, label }: { chart: ComponentType<P>; props: P; style: CSSProperties; label: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 

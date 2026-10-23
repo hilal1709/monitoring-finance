@@ -9,7 +9,18 @@ import { cn } from "@/lib/utils";
 // LottieSvg ships only the SVG renderer, which is all these animations need.
 const LottieSvg = dynamic(() => import("lottie-react").then((module) => module.LottieSvg), { ssr: false });
 
-export type LottieName = "loader" | "upload-success" | "error" | "empty-chart" | "confetti";
+export type LottieName =
+  | "loader"
+  | "upload-success"
+  | "error"
+  | "empty-chart"
+  | "confetti"
+  | "guide-drag"
+  | "guide-chart-type"
+  | "guide-add-data"
+  | "guide-upload"
+  | "guide-save"
+  | "saving";
 
 /** Plays one of the palette-colored animations in /public/lottie. */
 export function Lottie({ name, loop = true, className, onComplete }: { name: LottieName; loop?: boolean; className?: string; onComplete?: () => void }) {

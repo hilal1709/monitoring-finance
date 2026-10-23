@@ -1,0 +1,9 @@
+# Vendored Python wheels and copied skills are not project code.
+lib/python-packages/
+.claude/
+node_modules/
+.next/
+playwright-report/
+test-results/
+lighthouse-reports/
+public/lottie/

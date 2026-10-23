@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import DashboardPage from "@/components/dashboard-page";
-import { getCachedKpiDashboard, safely } from "@/lib/data-cache";
+import { getCachedKpiDashboard, getCachedLayout, safely } from "@/lib/data-cache";
 
 // Rendered on the server from the tagged data cache (see lib/data-cache.ts) and
 // regenerated when an upload/delete invalidates the tag.
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function KpiTimelyPage() {
-  const initialKpi = await safely(() => getCachedKpiDashboard());
+  const [initialKpi, initialLayout] = await Promise.all([safely(() => getCachedKpiDashboard()), safely(() => getCachedLayout("kpi-timely"))]);
 
-  return <DashboardPage view="kpi-timely" initialKpi={initialKpi} />;
+  return <DashboardPage view="kpi-timely" initialKpi={initialKpi} initialLayout={initialLayout} />;
 }
